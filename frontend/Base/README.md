@@ -1,14 +1,33 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Desktop.
+# MedArchive - Frontend
 
-* `/composeApp` is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - `commonMain` is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    `iosMain` would be the right folder for such calls.
+## 📱 Поддерживаемые платформы
 
-* `/iosApp` contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform, 
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+- **Android** (5.0+)
+- **iOS** (13.0+)
+- **Desktop** (Windows, macOS, Linux)
 
+## 🛠 Технологический стек
+### Основной
+- **Kotlin Multiplatform** - кроссплатформенная разработка
+- **Jetpack Compose** / **Compose Multiplatform** - декларативный UI
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+### Дополнительные библиотеки
+- **Navigation Compose** - навигация между экранами
+
+## 📁 Структура проекта
+```
+composeApp/
+├── src/
+│   ├── commonMain/           # Общий код для всех платформ
+│   │   ├── kotlin/           # Common ViewModel, Models, UseCases
+│   │   └── composeResources/ # Ресурсы (изображения, шрифты)
+│   │       └── drawable/
+│   ├── androidMain/          # Android специфичный код
+│   │   ├── kotlin/
+│   │   └── res/              # Android ресурсы
+│   ├── iosMain/              # iOS специфичный код
+│   │   └── kotlin/
+│   └── desktopMain/          # Desktop специфичный код
+│       └── kotlin/
+└── build.gradle.kts          # Build конфигурация
+```
