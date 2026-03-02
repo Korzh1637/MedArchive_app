@@ -31,3 +31,8 @@ composeApp/
 │       └── kotlin/
 └── build.gradle.kts          # Build конфигурация
 ```
+
+## Будущий дизайн(пытаемся сделать похожий)
+```
+https://www.figma.com/design/LgBBzsneLEdm99ZX8JsxUK/Finance-Management-Mobile-App-UI-UX-Kit-for-Budget-Tracker-Financial-Prototype-Design--Community-?node-id=7020-3430&t=vpIsDub8zd9K4ONN-1
+```
