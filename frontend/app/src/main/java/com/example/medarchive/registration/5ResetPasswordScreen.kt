@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -88,8 +90,12 @@ fun ResetPasswordScreen(navController: NavController) {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Column(
-                        horizontalAlignment = Alignment.Start
+                        horizontalAlignment = Alignment.Start,
+                        modifier = Modifier.padding(25.dp)
                     ) {
+
+                        Spacer(Modifier.height(15.dp))
+
                         Text(
                             text = "Восстановление Пароля?",
                             fontFamily = PoppinsFontFamily,
@@ -112,20 +118,19 @@ fun ResetPasswordScreen(navController: NavController) {
 
                     // Поле Email
                     DataFields(
-                        label = "Введите Адрес Электронной Почты",
+                        label = "Электронная Почта",
                         placeholder = "example@example.com",
                         value = email,
                         onValueChange = { email = it },
-                        spacerTop = 40, // Первый элемент - отступ не нужен
+                        spacerTop = 20, // Первый элемент - отступ не нужен
                         leadingIcon = person,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                     )
 
-                    // Кнопка "Войти"
+                    // Кнопка "Далее"
                     Button(
                         onClick = {
-                            println("Вход")
-
+                            println("Далее")
                             // navController.navigate(Screen.Main.route)
                         },
                         modifier = Modifier
@@ -147,9 +152,9 @@ fun ResetPasswordScreen(navController: NavController) {
                         )
                     }
 
-                    Spacer(Modifier.weight(1f))
+                    Spacer(Modifier.height(8.dp))
 
-                    // Кнопка "Войти"
+                    // Кнопка "Регистрация"
                     Button(
                         onClick = {
                             println("Регистрация")

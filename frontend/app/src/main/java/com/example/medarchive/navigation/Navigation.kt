@@ -5,7 +5,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.medarchive.MainScreen
-import com.example.medarchive.SplashActivity
+import com.example.medarchive.splash.SplashActivity
 import com.example.medarchive.registration.ConfirmScreen
 import com.example.medarchive.registration.LoginScreen
 import com.example.medarchive.registration.RegLogMainScreen
