@@ -4,7 +4,7 @@
 -- Хранит показатели: давление, сахар, боль и т.д.
 -- =====================================================
 
-CREATE TABLE health_entries (
+CREATE TABLE IF NOT EXISTS health_entries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     local_id TEXT NOT NULL UNIQUE,
     user_id INTEGER NOT NULL,

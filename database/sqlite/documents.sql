@@ -5,7 +5,7 @@
 -- Поддерживает офлайн-синхронизацию через поля local_id и is_synced.
 -- =====================================================
 
-CREATE TABLE documents (
+CREATE TABLE IF NOT EXISTS documents (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     local_id TEXT NOT NULL UNIQUE,
     user_id INTEGER NOT NULL,
