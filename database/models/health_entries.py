@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import datetime
 
-from pydantic import field_validator
+from pydantic import field_validator, ValidationInfo
 
 from .base import BaseSchema, SoftDeleteSchema
 from .enums import HealthEntryType, Unit
@@ -18,13 +18,15 @@ class HealthEntryCreate(BaseSchema):
     notes: Optional[str] = None
     entry_date: datetime
 
-    @field_validator('entry_type')
-    def validate_pressure(cls, v, values):
-        """Для давления обязательно два значения"""
-        if v == HealthEntryType.PRESSURE:
-            if 'value2' not in values or values['value2'] is None:
-                raise ValueError('Для давления нужно указать value2 (диастолическое)')
-        return v
+    # @field_validator('entry_type')
+    # def validate_pressure(cls, v, info: ValidationInfo):
+    #     """Для давления обязательно два значения"""
+    #     if v == HealthEntryType.PRESSURE:
+    #         # Получаем значения из данных
+    #         values = info.data
+    #         if 'value2' not in values or values['value2'] is None:
+    #             raise ValueError('Для давления нужно указать value2 (диастолическое)')
+    #     return v
 
 class HealthEntryUpdate(BaseSchema):
     value1: Optional[float] = None

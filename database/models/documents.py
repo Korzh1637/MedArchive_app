@@ -11,7 +11,7 @@ class DocumentCreate(BaseSchema):
     title: Optional[str] = None
     document_type: Optional[DocumentType] = None
     content: Optional[str] = None
-    image_url: Optional[str] = None   # для сервера
+    # image_url: Optional[str] = None   # для сервера
     image_path: Optional[str] = None  # для локального SQLite
 
 class DocumentUpdate(BaseSchema):
@@ -20,6 +20,6 @@ class DocumentUpdate(BaseSchema):
     content: Optional[str] = None
 
 class Document(DocumentCreate, SoftDeleteSchema):
-    id: int
+    id: Optional[int] = None
     is_synced: bool = False
     last_sync_at: Optional[datetime] = None
