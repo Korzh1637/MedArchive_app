@@ -14,6 +14,7 @@ CREATE TABLE documents (
     title VARCHAR(20),
     document_type VARCHAR(50),
     content TEXT,
+    image_path TEXT,
     image_url TEXT,
     
     -- Метаданные для синхронизации

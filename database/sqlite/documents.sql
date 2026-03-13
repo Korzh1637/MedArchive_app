@@ -6,7 +6,7 @@
 -- =====================================================
 
 CREATE TABLE IF NOT EXISTS documents (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER,
     local_id TEXT NOT NULL UNIQUE,
     user_id INTEGER NOT NULL,
     
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS documents (
     title TEXT,
     document_type TEXT,
     content TEXT,
-    image_url TEXT,
+    image_path TEXT,
     
     -- Метаданные для синхронизации
     is_synced INTEGER DEFAULT 0,
