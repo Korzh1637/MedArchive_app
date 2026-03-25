@@ -131,7 +131,8 @@ fun ResetPasswordScreen(navController: NavController) {
                     Button(
                         onClick = {
                             println("Далее")
-                            // navController.navigate(Screen.Main.route)
+
+                            navController.navigate(Screen.Confirm.route)
                         },
                         modifier = Modifier
                             .padding(top = 50.dp)

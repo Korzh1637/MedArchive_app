@@ -51,9 +51,9 @@ fun SplashActivity(navController: NavController) {
     Box(modifier = Modifier.fillMaxSize()) {
         // Фоновое изображение в зависимости от этапа
         when (currentStep) {
-            0 -> SplashScreenBackground(R.drawable.first_screen)
-            1 -> SplashScreenBackground(R.drawable.second_screen)
-            2 -> SplashScreenBackground(R.drawable.third_screen)
+            0 -> SplashScreenBackground(R.drawable.first)
+            1 -> SplashScreenBackground(R.drawable.second)
+            2 -> SplashScreenBackground(R.drawable.third)
         }
 
         // Контент поверх фона

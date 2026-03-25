@@ -18,7 +18,7 @@ class DateVisualTransformation : VisualTransformation {
 
         return TransformedText(
             text = AnnotatedString(formatted),
-            offsetMapping = DateOffsetMapping // ✅ Было: offsetTranslator
+            offsetMapping = DateOffsetMapping
         )
     }
 }

@@ -12,8 +12,8 @@ val Pink40 = Color(0xFF7D5260)
 
 
 // My colors
-val MainColor = Color(0xFFD8FE8B)
-val DarkModeBar = Color(0xFF0E3E3E)
-val LettersAndIcons = Color(0xFF093030)
-val LightSubMainColor = Color(0xFFDFF7E2)
-val RegMenu = Color(0xFFFFFDD0)
+val MainColor = Color(0xFFf8e4ad)
+val DarkModeBar = Color(0xFFe4892a)
+val LettersAndIcons = Color(0xFF70330d)
+val LightSubMainColor = Color(0xFFbe8157)
+val RegMenu = Color(0xFFcdac92)

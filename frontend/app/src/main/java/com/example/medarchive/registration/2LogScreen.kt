@@ -117,8 +117,9 @@ fun LoginScreen(navController: NavController) {
                     Button(
                         onClick = {
                             println("Вход")
-
-                            // navController.navigate(Screen.Main.route)
+                            // TO DO
+                            // прописать логику проверки логирования 
+                            navController.navigate(Screen.Main.route)
                         },
                         modifier = Modifier
                             .padding(top = 50.dp)
