@@ -332,6 +332,17 @@ class SQLiteDatabase:
         ''' создание записи в health_entries '''
         if entry_date is None:
             entry_date = datetime.now()
+        else:
+            if not self.validate_date(entry_date):
+                print(f'Ошибка: некорректная дата "{entry_date}". '
+                    f'Используйте формат ГГГГ-ММ-ДД или ГГГГ-ММ-ДД ЧЧ:ММ:СС')
+                return None
+            
+            if self.is_future_date(entry_date, allow_today=True):
+                pass
+            else:
+                print(f'Ошибка: дата "{entry_date}" не может быть в будущем')
+                return None
         
         with self.get_connection() as conn:
             local_id = str(uuid.uuid4())
@@ -417,7 +428,7 @@ class SQLiteDatabase:
 
 
     def update_entry(self, entry, entry_type = None, value = None,
-                     unit = None, notes = None, note = None):
+                     unit = None, notes = None, entry_date = None):
         ''' обновление записи в health_entries '''
         with self.get_connection() as conn:
             cursor = conn.cursor()
@@ -455,6 +466,25 @@ class SQLiteDatabase:
                         (notes, updated_at, entry.user_id, entry.local_id))
                     
                     entry.notes = notes
+
+                if entry_date is not None:
+                    if not self.validate_date(entry_date):
+                        print(f'Ошибка: некорректная дата "{entry_date}". '
+                            f'Используйте формат ГГГГ-ММ-ДД или ГГГГ-ММ-ДД ЧЧ:ММ:СС')
+                        return None
+                    
+                    if self.is_future_date(entry_date, allow_today=True):
+                        pass
+                    else:
+                        print(f'Ошибка: дата "{entry_date}" не может быть в будущем')
+                        return None
+                    
+                    cursor.execute('''UPDATE health_entries 
+                        SET entry_date = ?, updated_at = ? 
+                        WHERE user_id = ? AND local_id = ?''',
+                        (entry_date, updated_at, entry.user_id, entry.local_id))
+                    
+                    entry.entry_date = entry_date
                 
                 conn.commit()
                 entry.updated_at = updated_at
@@ -495,3 +525,43 @@ class SQLiteDatabase:
             input_password.encode('utf-8'), 
             hashed_password.encode('utf-8')
         )
+    
+    def validate_date(date_str):
+        ''' Проверка корректности даты, введенной пользователем. '''
+        if not date_str:
+            return False
+        
+        try:
+            for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d']:
+                try:
+                    datetime.strptime(date_str, fmt)
+                    return True
+                except ValueError:
+                    continue
+                
+            return False
+        except (ValueError, TypeError):
+            return False
+    
+    def is_future_date(date_str: str, allow_today: bool = True) -> bool:
+        ''' Проверка, что дата не в будущем (для пользовательского ввода). '''
+        if not SQLiteDatabase.validate_date(date_str):
+            return False
+        
+        try:
+            parsed_date = None
+            for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d']:
+                try:
+                    parsed_date = datetime.strptime(date_str, fmt)
+                    break
+                except ValueError:
+                    continue
+            
+            now = datetime.now()
+            if allow_today:
+                return parsed_date.date() <= now.date()
+            else:
+                return parsed_date.date() < now.date()
+                
+        except (ValueError, TypeError):
+            return False
