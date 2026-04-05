@@ -175,8 +175,8 @@ class SQLiteDatabase:
 
     # ==================== Работа с документами (анализы/заключения) ====================
     
-    def create_document(self, user_id, title, document_type, 
-                    text, image_path, id=None):
+    def create_document(self, user_id, image_path, title=None, document_type=None, 
+                    text=None):
         ''' создание документа в sqlite '''
         with self.get_connection() as conn:
             local_id = str(uuid.uuid4())
@@ -190,11 +190,11 @@ class SQLiteDatabase:
                 created_at = datetime.now()
                 cursor.execute(
                         ''' INSERT INTO documents
-                        (local_id, user_id, title, document_type, content, image_path, 
-                         created_at, updated_at)
+                        (local_id, user_id, title, document_type, content, image_path,
+                         add_image_path, created_at, updated_at)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
                         (local_id, user_id, title, document_type, 
-                         text, image_path, created_at, created_at)
+                         text, image_path, 1, created_at, created_at)
                     )
 
                 conn.commit()
@@ -208,6 +208,7 @@ class SQLiteDatabase:
                         document_type=doc_row['document_type'],
                         content=doc_row['content'],
                         image_path=doc_row['image_path'],
+                        add_image_path=doc_row['add_image_path'],
                         created_at=doc_row['created_at'],
                         updated_at=doc_row['updated_at'],
                         is_synced=doc_row['is_synced'],
@@ -242,6 +243,23 @@ class SQLiteDatabase:
             except sqlite3.Error as error:
                 print(f'произошла ошибка при получении документа пользователя: {error}')
                 return None
+            
+    
+    def get_row_documents(self):
+        ''' получение необработанных документов в sqlite '''
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+
+            try:
+                cursor.execute('''SELECT * FROM documents
+                               WHERE add_image_path = ? AND deleted_at IS NULL''',
+                               (1,))
+
+                documents_data = cursor.fetchall()
+                return documents_data if documents_data else []
+            except sqlite3.Error as error:
+                print(f'произошла ошибка при получении документов: {error}')
+                return []
             
     
     def update_document(self, doc: Document, title=None, 
@@ -519,12 +537,13 @@ class SQLiteDatabase:
         salt = bcrypt.gensalt()
         return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
     
-    def _verify_password(self, input_password, hashed_password):
-        ''' проверка правильности пароля '''
-        return bcrypt.checkpw(
-            input_password.encode('utf-8'), 
-            hashed_password.encode('utf-8')
-        )
+    # ЕСТЬ ВО ФРОНТ !!!!!!!!!!!!!!!!!!!!!!!!!!
+    # def _verify_password(self, input_password, hashed_password):
+    #     ''' проверка правильности пароля '''
+    #     return bcrypt.checkpw(
+    #         input_password.encode('utf-8'), 
+    #         hashed_password.encode('utf-8')
+    #     )
     
     def validate_date(date_str):
         ''' Проверка корректности даты, введенной пользователем. '''

@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS documents (
     document_type TEXT,
     content TEXT,
     image_path TEXT,
+    add_image_path INTEGER DEFAULT 0,
     
     -- Метаданные для синхронизации
     is_synced INTEGER DEFAULT 0,
