@@ -14,14 +14,12 @@ CREATE TABLE documents (
     title VARCHAR(20),
     document_type VARCHAR(50),
     content TEXT,
-    image_path TEXT,
+    image_path TEXT,  -- скорее всего, не понадобится
     image_url TEXT,
     
     -- Метаданные для синхронизации
-    is_synced BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE,
-    last_sync_at TIMESTAMP WITH TIME ZONE, 
+    updated_at TIMESTAMP WITH TIME ZONE, 
     deleted_at TIMESTAMP WITH TIME ZONE,
     
     CONSTRAINT f_key_for_id_users FOREIGN KEY (user_id) REFERENCES users(id)
@@ -34,4 +32,3 @@ COMMENT ON COLUMN documents.title IS 'Анализ/заключение';
 COMMENT ON COLUMN documents.document_type IS 'Тип документа';
 COMMENT ON COLUMN documents.content IS 'Распознанный текст';
 COMMENT ON COLUMN documents.image_url IS 'Ссылка на изображение';
-COMMENT ON COLUMN documents.is_synced IS 'Флаг синхронизации с сервером';

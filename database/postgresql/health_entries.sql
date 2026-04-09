@@ -17,7 +17,6 @@ CREATE TABLE health_entries (
     notes TEXT,
     
     entry_date TIMESTAMP WITH TIME ZONE NOT NULL,
-    is_synced BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE,
     deleted_at TIMESTAMP WITH TIME ZONE,
