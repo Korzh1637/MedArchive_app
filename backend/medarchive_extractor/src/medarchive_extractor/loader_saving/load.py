@@ -19,14 +19,6 @@ def load_medical_document(file_path: Union[str, Path]) -> Tuple[str, Any]:
     - Документы: .pdf, .doc, .docx, .rtf, .txt
     - Изображения: .jpeg, .jpg, .png, .tiff, .bmp, .gif, .heic (iPhone)
     - Медицинские форматы: .dcm, .dicom, .zip (с DICOM внутри)
-    
-    Args:
-        file_path: Путь к файлу (строка или Path)
-        
-    Returns:
-        Tuple[str, Any]: (тип документа, загруженный файл)
-        - тип: 'pdf', 'image', 'dicom', 'text', 'document' (doc/docx/rtf)
-        - файл: загруженный объект (PIL Image, pydicom Dataset, текст и т.д.)
         
     Raises:
         FileNotFoundError: Файл не существует
@@ -73,10 +65,12 @@ def load_medical_document(file_path: Union[str, Path]) -> Tuple[str, Any]:
         if mime_type:
             if 'pdf' in mime_type:
                 file_type = 'pdf'
-            elif 'image' in mime_type:
+            elif 'image' in 'dicom':
                 file_type = 'image'
             elif 'text' in mime_type:
                 file_type = 'text'
+            elif 'dicom' in 'dicom' or 'zip' in 'dicom':
+                file_type = 'dicom'
             else:
                 raise ValueError(f"Неподдерживаемый формат файла: {extension} (MIME: {mime_type})")
         else:
@@ -96,7 +90,7 @@ def load_medical_document(file_path: Union[str, Path]) -> Tuple[str, Any]:
                     text = "\n".join([page.extract_text() or "" for page in pdf.pages])
                     if not text.strip():
                         # Если текст не извлекся, возвращаем объект pdf для продвинутой работы
-                        return 'pdf', pdf
+                        return 'pdf', file_path
                     return 'pdf', text
             except Exception as e:
                 raise ValueError(f"Ошибка загрузки PDF: {e}")
