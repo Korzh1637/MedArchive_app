@@ -1,6 +1,7 @@
 package com.example.medarchive.data.local
 
 import android.content.Context
+import android.util.Log
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.example.medarchive.data.local.entity.*
 import com.example.medarchive.domain.models.*
@@ -17,6 +18,17 @@ class DatabaseRepository(context: Context) {
     private val entryDao = db.healthEntryDao()
 
     // ==================== Пользователи ====================
+    suspend fun verifyUser(email: String, password: String): User? {
+        return withContext(Dispatchers.IO) {
+            val userEntity = userDao.getUserByEmail(email) ?: return@withContext null
+            val result = BCrypt.verifyer().verify(password.toCharArray(), userEntity.passwordHash)
+            if (result.verified) {
+                userEntity.toDomainModel()
+            } else {
+                null
+            }
+        }
+    }
 
     suspend fun createUser(email: String, password: String, fullName: String): User? {
         return withContext(Dispatchers.IO) {
@@ -46,19 +58,23 @@ class DatabaseRepository(context: Context) {
 
     suspend fun updateUser(email: String, password: String?, fullName: String?): User? {
         return withContext(Dispatchers.IO) {
-            val existing = userDao.getUserByEmail(email) ?: return@withContext null
+            val existing = userDao.getUserByEmail(email)
+            if (existing == null) {
+                Log.e("DatabaseRepository", "User not found: $email")
+                return@withContext null
+            }
             var updated = existing
             if (password != null) {
-                updated = updated.copy(
-                    passwordHash = BCrypt.withDefaults().hashToString(12, password.toCharArray()),
-                    updatedAt = Date()
-                )
+                try {
+                    val hash = BCrypt.withDefaults().hashToString(12, password.toCharArray())
+                    updated = updated.copy(passwordHash = hash, updatedAt = Date())
+                } catch (e: Exception) {
+                    Log.e("DatabaseRepository", "Bcrypt error", e)
+                    return@withContext null
+                }
             }
             if (fullName != null) {
-                updated = updated.copy(
-                    fullName = fullName,
-                    updatedAt = Date()
-                )
+                updated = updated.copy(fullName = fullName, updatedAt = Date())
             }
             userDao.updateUser(updated)
             updated.toDomainModel()

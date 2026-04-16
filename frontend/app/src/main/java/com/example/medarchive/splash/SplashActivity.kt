@@ -150,7 +150,7 @@ fun WavyTextContainer(step: Int, onStepChange: (Int) -> Unit) {
 fun CustomBox(firstText: String, secondText: String, text: String, onNext: () -> Unit, onBack: (() -> Unit)?){
     Text(
         text = firstText,
-        color = DarkModeBar,
+        color = LettersAndIcons,
         fontSize = 20.sp,
         fontWeight = FontWeight.SemiBold,
         fontFamily = PoppinsFontFamily,
@@ -162,7 +162,7 @@ fun CustomBox(firstText: String, secondText: String, text: String, onNext: () ->
 
     Text(
         text = secondText,
-        color = DarkModeBar.copy(alpha = 0.95f),
+        color = LettersAndIcons,
         fontSize = 16.sp,
         textAlign = TextAlign.Center,
         lineHeight = 21.sp,

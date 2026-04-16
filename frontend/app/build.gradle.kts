@@ -57,6 +57,8 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.core.ktx)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.compose.runtime)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 
