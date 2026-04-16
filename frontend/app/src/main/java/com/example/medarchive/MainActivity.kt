@@ -11,17 +11,9 @@ import com.example.medarchive.navigation.AppNavigation
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         setContent {
             AppNavigation()
         }
     }
-}
-
-
-
-@Composable
-fun MainScreen(navController: NavController) {
-    TODO("Not yet implemented")
 }
 
