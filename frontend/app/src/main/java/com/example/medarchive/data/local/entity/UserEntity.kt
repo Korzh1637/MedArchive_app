@@ -11,6 +11,7 @@ data class UserEntity(
     val email: String,
     val passwordHash: String,
     val fullName: String,
+    // ДОБАВИТЬ ФЛАГ ДЛЯ СИНХРОНИЗАЦИИ С СЕРВЕРОМ
     val createdAt: Date = Date(),
     val updatedAt: Date = Date(),
     val lastLoginAt: Date? = null,
