@@ -1,187 +1,425 @@
 package com.example.medarchive.registration
 
-import androidx.compose.foundation.Image
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.*
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.medarchive.R
 import com.example.medarchive.navigation.Screen
-import com.example.medarchive.ui.theme.DarkModeBar
-import com.example.medarchive.ui.theme.LettersAndIcons
-import com.example.medarchive.ui.theme.LightSubMainColor
-import com.example.medarchive.ui.theme.MainColor
-import com.example.medarchive.ui.theme.PoppinsFontFamily
-import com.example.medarchive.ui.theme.RegMenu
-
+import com.example.medarchive.presentation.viewmodels.MainViewModel
+import com.example.medarchive.ui.theme.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
-fun LoginScreen(navController: NavController) {
+fun LoginScreen(navController: NavController, mainViewModel: MainViewModel) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
+    val currentUser by mainViewModel.currentUser.collectAsState()
+    val loginError by mainViewModel.loginError.collectAsState()
 
-    val lock = painterResource(id = R.drawable.ic_lock)
-    val person = painterResource(id = R.drawable.ic_person)
-    val visibilityIcon = painterResource(id = R.drawable.ic_visibility_on)
-    val visibilityOffIcon = painterResource(id = R.drawable.ic_visibility_off)
+    // Локальное состояние загрузки (можно заменить на mainViewModel.isLoading)
+    var isLoading by remember { mutableStateOf(false) }
+
+    val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+
+    // Анимация появления
+    val transitionState = remember { MutableTransitionState(false) }
+    LaunchedEffect(Unit) {
+        transitionState.targetState = true
+    }
+
+    LaunchedEffect(currentUser) {
+        if (currentUser != null) {
+            navController.navigate(Screen.Main.route) {
+                popUpTo(Screen.Login.route) { inclusive = true }
+            }
+        }
+    }
 
     Box(
-        modifier = Modifier.fillMaxSize().background(MainColor)
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(MainColor, RegMenu)
+                )
+            )
     ) {
+        // Декоративные размытые круги на фоне
+        AnimatedVisibility(
+            visibleState = transitionState,
+            enter = fadeIn(animationSpec = tween(1500, delayMillis = 500)) +
+                    slideInVertically(initialOffsetY = { -40 }, animationSpec = tween(600, delayMillis = 100))
+        ) { AnimatedBackgroundCircles() }
+
         Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 28.dp)
+                .imePadding(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            // Заголовок
-            Text(
-                text = "Добро Пожаловать!",
-                fontFamily = PoppinsFontFamily,
-                fontWeight = FontWeight.Bold,
-                fontSize = 28.sp,
-                color = LettersAndIcons,
-                modifier = Modifier.padding(top = 40.dp)
-            )
-
-            // Логотип
-            Image(
-                painter = painterResource(id = R.drawable.ic_signin_cat1),
-                contentDescription = "Welcome Cat",
-                modifier = Modifier.size(140.dp)
-            )
-
-            Surface(
-                modifier = Modifier
-                    .fillMaxSize(),
-                shape = RoundedCornerShape(topEnd = 60.dp, topStart = 60.dp), // Скругление углов
-                color = RegMenu,     // Цвет карточки (или CardBackground)
+            // Анимированный заголовок
+            AnimatedVisibility(
+                visibleState = transitionState,
+                enter = fadeIn(animationSpec = tween(1000, delayMillis = 300)) +
+                        slideInVertically(initialOffsetY = { -40 }, animationSpec = tween(1000, delayMillis = 100))
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Поле Email
-                    DataFields(
-                        label = "Имя/Почта",
-                        placeholder = "example@example.com",
-                        value = email,
-                        onValueChange = { email = it },
-                        spacerTop = 40, // Первый элемент - отступ не нужен
-                        leadingIcon = person,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-                    )
-
-                    // Поле Password
-                    DataFields(
-                        label = "Пароль",
-                        placeholder = "••••••••",
-                        value = password,
-                        onValueChange = { password = it },
-                        spacerTop = 18,
-                        leadingIcon = lock,
-                        trailingIcon = if (passwordVisible) visibilityIcon else visibilityOffIcon,
-                        onTrailingIconClick = { passwordVisible = !passwordVisible },
-                        visualTransformation = if (passwordVisible)
-                            VisualTransformation.None
-                        else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-                    )
-
-                    // Кнопка "Войти"
-                    Button(
-                        onClick = {
-                            println("Вход")
-                            // TO DO
-                            // прописать логику проверки логирования 
-                            navController.navigate(Screen.Main.route)
-                        },
-                        modifier = Modifier
-                            .padding(top = 50.dp)
-                            .fillMaxWidth(0.48f)
-                            .height(48.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MainColor,
-                            contentColor = LettersAndIcons
-                        ),
-                        shape = RoundedCornerShape(30.dp)
-                    ) {
-                        Text(
-                            text = "Войти",
-                            fontFamily = PoppinsFontFamily,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 20.sp,
-                            color = DarkModeBar
-                        )
-                    }
-
-
-                    // "Забыли пароль?" под кнопкой
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Забыли пароль?",
+                        text = "С возвращением!",
                         fontFamily = PoppinsFontFamily,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
-                        color = LettersAndIcons,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 34.sp,
+                        color = DarkModeBar,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "Рады видеть вас снова",
+                        fontFamily = PoppinsFontFamily,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 16.sp,
+                        color = DarkModeBar.copy(alpha = 0.8f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // Карточка с полями ввода (анимированное появление с задержкой)
+            AnimatedVisibility(
+                visibleState = transitionState,
+                enter = fadeIn(animationSpec = tween(600, delayMillis = 300)) +
+                        slideInVertically(initialOffsetY = { 40 }, animationSpec = tween(600, delayMillis = 300))
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(16.dp, RoundedCornerShape(36.dp)),
+                    shape = RoundedCornerShape(36.dp),
+                    colors = CardDefaults.cardColors(containerColor = LightSubMainColor.copy(alpha = 0.95f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Column(
                         modifier = Modifier
-                            .padding(top = 16.dp)
-                            .clickable {
-                                println("Забыли пароль?")
+                            .fillMaxWidth()
+                            .padding(28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Email поле с анимацией границы при фокусе
+                        AnimatedTextField(
+                            value = email,
+                            onValueChange = { email = it },
+                            placeholder = "Email",
+                            leadingIcon = R.drawable.ic_person,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Next
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Пароль поле
+                        AnimatedPasswordField(
+                            value = password,
+                            onValueChange = { password = it },
+                            placeholder = "Пароль",
+                            leadingIcon = R.drawable.ic_lock,
+                            passwordVisible = passwordVisible,
+                            onVisibilityToggle = { passwordVisible = !passwordVisible },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    focusManager.clearFocus()
+                                    if (email.isNotBlank() && password.isNotBlank()) {
+                                        scope.launch {
+                                            isLoading = true
+                                            mainViewModel.login(email, password)
+                                            isLoading = false
+                                        }
+                                    }
+                                }
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        // Ошибка
+                        AnimatedVisibility(
+                            visible = loginError != null,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Text(
+                                text = loginError ?: "",
+                                color = MaterialTheme.colorScheme.error,
+                                fontFamily = PoppinsFontFamily,
+                                fontSize = 13.sp,
+                                modifier = Modifier.padding(top = 12.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(28.dp))
+
+                        // Кнопка Войти с состоянием загрузки
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    isLoading = true
+                                    mainViewModel.login(email, password)
+                                    isLoading = false
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .alpha(if (isLoading) 0.8f else 1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MainColor,
+                                contentColor = DarkModeBar,
+                                disabledContainerColor = MainColor.copy(alpha = 0.5f)
+                            ),
+                            shape = RoundedCornerShape(30.dp),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
+                            enabled = !isLoading && email.isNotBlank() && password.isNotBlank()
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = DarkModeBar,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    text = "Войти",
+                                    fontFamily = PoppinsFontFamily,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 18.sp
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Ссылка "Забыли пароль?"
+                        Text(
+                            text = "Забыли пароль?",
+                            fontFamily = PoppinsFontFamily,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
+                            color = MainColor,
+                            modifier = Modifier.clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null) {
                                 navController.navigate(Screen.ResetPassword.route)
                             }
-                    )
-
-                    // Кнопка "Войти"
-                    Button(
-                        onClick = {
-                            println("Регистрация")
-                            navController.navigate(Screen.Registration.route)
-                        },
-                        modifier = Modifier
-                            .padding(top = 16.dp)
-                            .fillMaxWidth(0.48f)
-                            .height(48.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = LightSubMainColor,
-                            contentColor = LettersAndIcons
-                        ),
-                        shape = RoundedCornerShape(30.dp)
-                    ) {
-                        Text(
-                            text = "Регистрация",
-                            fontFamily = PoppinsFontFamily,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 20.sp,
-                            color = DarkModeBar
+                                .padding(8.dp)
                         )
                     }
                 }
             }
+
+            // Кнопка регистрации внизу (анимированное появление)
+            AnimatedVisibility(
+                visibleState = transitionState,
+                enter = fadeIn(animationSpec = tween(600, delayMillis = 500)) +
+                        slideInVertically(initialOffsetY = { 40 }, animationSpec = tween(600, delayMillis = 500))
+            ) {
+                Row(
+                    modifier = Modifier.padding(top = 32.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Нет аккаунта? ",
+                        fontFamily = PoppinsFontFamily,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp,
+                        color = DarkModeBar.copy(alpha = 0.9f)
+                    )
+                    Text(
+                        text = "Зарегистрироваться",
+                        fontFamily = PoppinsFontFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        color = MainColor,
+                        modifier = Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ){
+                            navController.navigate(Screen.Registration.route)
+                        }
+                    )
+                }
+            }
         }
     }
+}
+
+// Вспомогательные компоненты для полей с анимированной границей
+@Composable
+fun AnimatedTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    leadingIcon: Int,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    val borderColor by animateColorAsState(
+        targetValue = if (isFocused) MainColor else LettersAndIcons.copy(alpha = 0.7f),
+        animationSpec = tween(200),
+        label = "borderColor"
+    )
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
+        visualTransformation = visualTransformation,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+            focusedBorderColor = borderColor,
+            unfocusedBorderColor = borderColor,
+            focusedLeadingIconColor = borderColor,
+            unfocusedLeadingIconColor = borderColor
+        ),
+        placeholder = {
+            Text(
+                text = placeholder,
+                fontFamily = PoppinsFontFamily,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+                color = borderColor
+            )
+        },
+        leadingIcon = {
+            Icon(
+                painter = painterResource(id = leadingIcon),
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+        },
+        keyboardOptions = keyboardOptions,
+        singleLine = true,
+        interactionSource = interactionSource
+    )
+}
+
+@Composable
+fun AnimatedPasswordField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    leadingIcon: Int,
+    passwordVisible: Boolean,
+    onVisibilityToggle: () -> Unit,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    val borderColor by animateColorAsState(
+        targetValue = if (isFocused) MainColor else LettersAndIcons.copy(alpha = 0.7f),
+        animationSpec = tween(200),
+        label = "borderColor"
+    )
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+            focusedBorderColor = borderColor,
+            unfocusedBorderColor = borderColor,
+            focusedLeadingIconColor = borderColor,
+            unfocusedLeadingIconColor = borderColor,
+            focusedTrailingIconColor = borderColor,
+            unfocusedTrailingIconColor = borderColor
+        ),
+        placeholder = {
+            Text(
+                text = placeholder,
+                fontFamily = PoppinsFontFamily,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+                color = borderColor
+            )
+        },
+        leadingIcon = {
+            Icon(
+                painter = painterResource(id = leadingIcon),
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+        },
+        trailingIcon = {
+            IconButton(onClick = onVisibilityToggle) {
+                Icon(
+                    painter = painterResource(
+                        id = if (passwordVisible) R.drawable.ic_visibility_on else R.drawable.ic_visibility_off
+                    ),
+                    contentDescription = null,
+                    Modifier.size(30.dp)
+                )
+            }
+        },
+        visualTransformation = if (passwordVisible) VisualTransformation.None else (visualTransformation as? PasswordVisualTransformation) ?: PasswordVisualTransformation(),
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        singleLine = true,
+        interactionSource = interactionSource
+    )
 }
