@@ -12,6 +12,9 @@
 - health_entries.sql: Дневник здоровья
 
  **/work_with_db - основная работа с базой данных и ее таблицами**
+- database_work.py: класс для работы с локальной базой данных (SQLite)
+- postgresql_database.py: класс для работы с серверной базой данных (PostgreSQL)
+- tests.py: тесты для проверки работы методов из database_work
 
  **create_db_temp.py - временный файл для создания локальной базы данных на устройстве**
 
@@ -25,4 +28,7 @@
      python database/work_with_db/tests.py
 
 # Зависимости
+Для локальной бд:
      pip install pydantic bcript email-validator
+Для серверной бд (дополнительно):
+     pip install fastapi cryptography passlib python-jose python-dotenv
