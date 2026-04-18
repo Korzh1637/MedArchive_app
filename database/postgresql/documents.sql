@@ -14,8 +14,7 @@ CREATE TABLE documents (
     title VARCHAR(20),
     document_type VARCHAR(50),
     content TEXT,
-    image_path TEXT,  -- скорее всего, не понадобится
-    image_url TEXT,
+    image_data BYTEA,
     
     -- Метаданные для синхронизации
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -31,4 +30,4 @@ COMMENT ON COLUMN documents.user_id IS 'Владелец документа';
 COMMENT ON COLUMN documents.title IS 'Анализ/заключение';
 COMMENT ON COLUMN documents.document_type IS 'Тип документа';
 COMMENT ON COLUMN documents.content IS 'Распознанный текст';
-COMMENT ON COLUMN documents.image_url IS 'Ссылка на изображение';
+COMMENT ON COLUMN documents.image_data IS 'Зашифрованное изображение';
