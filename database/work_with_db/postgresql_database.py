@@ -99,7 +99,7 @@ class PostgreSQLDatabase:
                     return None
     
     def sync_document(self, local_id, user_id, title, document_type,
-                      content, image_path, created_at, updated_at,
+                      content, image_data, created_at, updated_at,
                       deleted_at):
         """
         синхронизация документа с сервером.
@@ -113,17 +113,17 @@ class PostgreSQLDatabase:
                     cur.execute("""
                         INSERT INTO documents 
                         (local_id, user_id, title, document_type, content,
-                         image_path, created_at, updated_at, deleted_at)
+                         image_data, created_at, updated_at, deleted_at)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (local_id) DO UPDATE SET
                             title = EXCLUDED.title,
                             document_type = EXCLUDED.document_type,
                             content = EXCLUDED.content,
-                            image_path = EXCLUDED.image_path,
+                            image_data = EXCLUDED.image_data,
                             updated_at = EXCLUDED.updated_at,
                             deleted_at = EXCLUDED.deleted_at""",
                         (local_id, user_id, title, document_type, content, 
-                          image_path, created_at, updated_at, deleted_at))
+                          image_data, created_at, updated_at, deleted_at))
                     
                     conn.commit()
                     return True
@@ -169,3 +169,9 @@ class PostgreSQLDatabase:
                     return False
                 
     # ==================== Методы для получения корректных данных на устройство ====================
+
+    def get_user_by_email(self, email: str):
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id, email, password_hash, full_name FROM users WHERE email = %s", (email,))
+                return cur.fetchone()
