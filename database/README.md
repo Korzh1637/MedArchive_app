@@ -29,6 +29,8 @@
 
 # Зависимости
 Для локальной бд:
+
      pip install pydantic bcript email-validator
 Для серверной бд (дополнительно):
+
      pip install fastapi cryptography passlib python-jose python-dotenv
