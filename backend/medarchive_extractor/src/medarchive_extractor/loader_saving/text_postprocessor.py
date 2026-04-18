@@ -1,6 +1,7 @@
 """
 Модуль постобработки текста для извлечения медицинских данных.
 Извлекает: дату, тип документа, медицинскую специальность, заключение, рекомендации.
+Поддерживает: лабораторные анализы, инструментальные исследования (УЗИ, КТ, МРТ, рентген, холтер)
 """
 
 import re
@@ -22,16 +23,17 @@ MEDICAL_TERMS_DICT = {
     'инфаркт', 'кардиограмма', 'лаборатория', 'лекарство', 'лечение', 'онкология',
     'пневмония', 'реабилитация', 'симптом', 'синдром', 'терапия', 'травма',
     'туберкулез', 'ультразвук', 'урология', 'фармакология', 'физиотерапия',
-    'хирургия', 'эндокринология', 'эпидемиология'
+    'хирургия', 'эндокринология', 'эпидемиология', 'осмотр', 'консультация'
 }
 
+# Лабораторные анализы
 LAB_TERMS_DICT = {
     'аланинаминотрансфераза', 'алт', 'антитела', 'аст', 'аспартатаминотрансфераза',
     'билирубин', 'витамин д', 'ггт', 'гаммаглутамилтрансфераза', 'гемоглобин',
     'глюкоза', 'индекс протромбин', 'иммуноглобулины', 'кальций', 'креатинин',
     'лейкоциты', 'магний', 'натрий', 'соэ', 'сахар', 'среактивный белок',
     'т3 свободный', 'т4 свободный', 'ттг', 'ферритин', 'фосфор', 'холестерин',
-    'триглицериды', 'эритроциты', 'мочевина', 'креатинин'
+    'триглицериды', 'эритроциты', 'мочевина'
 }
 
 # Специальности врачей
@@ -69,6 +71,56 @@ MEDICAL_SPECIALTIES = {
     'почка': 'урология',
     'травматолог': 'травматология',
     'перелом': 'травматология'
+}
+
+# Инструментальные исследования
+INSTRUMENTAL_STUDIES = {
+    'узи': 'ультразвуковое исследование',
+    'ультразвуковое': 'ультразвуковое исследование',
+    'эхокг': 'эхокардиография',
+    'эхо-кг': 'эхокардиография',
+    'эхо кг': 'эхокардиография',
+    'экг': 'электрокардиография',
+    'электрокардиограмма': 'электрокардиография',
+    'холтер': 'холтеровское мониторирование',
+    'холтеровское': 'холтеровское мониторирование',
+    'суточное мониторирование': 'холтеровское мониторирование',
+    'кт': 'компьютерная томография',
+    'компьютерная томография': 'компьютерная томография',
+    'мрт': 'магнитно-резонансная томография',
+    'магнитно-резонансная': 'магнитно-резонансная томография',
+    'рентген': 'рентгенография',
+    'рентгенография': 'рентгенография',
+    'маммография': 'маммография',
+    'фгс': 'фиброгастроскопия',
+    'гастроскопия': 'фиброгастроскопия',
+    'колоноскопия': 'колоноскопия',
+    'мскт': 'мультиспиральная компьютерная томография',
+    'пэт': 'позитронно-эмиссионная томография',
+    'пэт-кт': 'позитронно-эмиссионная томография',
+    'спиральная кт': 'спиральная компьютерная томография',
+    'доплер': 'допплерография',
+    'допплерография': 'допплерография',
+    'ангиография': 'ангиография',
+    'мазок': 'мазок',
+    'биопсия': 'биопсия'
+}
+
+# Типы анализов
+ANALYSIS_TYPES = {
+    'кровь': 'анализ крови',
+    'анализ крови': 'анализ крови',
+    'общий анализ крови': 'анализ крови',
+    'биохимический анализ крови': 'анализ крови',
+    'моча': 'анализ мочи',
+    'анализ мочи': 'анализ мочи',
+    'общий анализ мочи': 'общий анализ мочи',
+    'кал': 'анализ кала',
+    'анализ кала': 'анализ кала',
+    'гормоны': 'анализ гормонов',
+    'биохимия': 'биохимический анализ',
+    'пцр': 'ПЦР-диагностика',
+    'иммунограмма': 'иммунологическое исследование'
 }
 
 
@@ -164,27 +216,71 @@ def extract_date(text: str) -> Optional[str]:
     return None
 
 
-def determine_document_type(text: str) -> str:
-    """Определяет тип документа: заключение врача или анализы."""
+def determine_study_type(text: str) -> Tuple[str, str]:
+    """
+    Определяет тип исследования: инструментальное или лабораторное.
+
+    Returns:
+        Tuple[str, str]: (категория, тип исследования)
+        категория: 'lab_analysis' или 'instrumental_study'
+        тип: название исследования (УЗИ, анализ крови, КТ и т.д.)
+    """
     text_lower = text.lower()
 
+    # Проверяем инструментальные исследования
+    for keyword, study_name in INSTRUMENTAL_STUDIES.items():
+        if keyword in text_lower:
+            return 'instrumental_study', study_name
+
+    # Проверяем лабораторные анализы
+    for keyword, analysis_name in ANALYSIS_TYPES.items():
+        if keyword in text_lower:
+            return 'lab_analysis', analysis_name
+
+    # Проверяем по терминам лабораторных анализов
+    for term in LAB_TERMS_DICT:
+        if term in text_lower:
+            return 'lab_analysis', 'лабораторное исследование'
+
+    # Если ничего не найдено, пробуем определить по общим признакам
+    if any(word in text_lower for word in ['норма', 'показатель', 'единиц', 'ммоль', 'г/л']):
+        return 'lab_analysis', 'лабораторное исследование'
+
+    return 'doctor_conclusion', 'консультация врача'
+
+
+def determine_document_type(text: str) -> str:
+    """
+    Определяет тип документа с учетом инструментальных и лабораторных исследований.
+    """
+    text_lower = text.lower()
+
+    # Ключевые слова для заключения врача
     conclusion_keywords = [
         'заключени', 'диагноз', 'осмотр', 'рекомендац', 'назначен',
         'жалоб', 'анамнез', 'пациент', 'врач', 'осмотрен'
     ]
 
+    # Ключевые слова для лабораторных анализов
     lab_keywords = [
         'анализ', 'результат', 'норма', 'показатель', 'исследован',
-        'кровь', 'моча', 'биохими', 'общий анализ', 'единиц'
+        'кровь', 'моча', 'биохими', 'общий анализ'
     ] + list(LAB_TERMS_DICT)
+
+    # Ключевые слова для инструментальных исследований
+    instrumental_keywords = list(INSTRUMENTAL_STUDIES.keys())
 
     conclusion_score = sum(1 for kw in conclusion_keywords if kw in text_lower)
     lab_score = sum(1 for kw in lab_keywords if kw in text_lower)
+    instrumental_score = sum(1 for kw in instrumental_keywords if kw in text_lower)
 
-    if re.search(r'\d+\s*[|-]\s*\d+', text) and lab_score > 0:
+    # Приоритет: инструментальные > лабораторные > консультация
+    if instrumental_score > 0:
+        return 'instrumental_study'
+    elif lab_score > conclusion_score:
         return 'lab_analysis'
-
-    return 'doctor_conclusion' if conclusion_score >= lab_score else 'lab_analysis'
+    else:
+        return 'doctor_conclusion'
 
 
 def extract_medical_specialty(text: str) -> str:
@@ -217,7 +313,7 @@ def extract_medical_specialty(text: str) -> str:
         return 'общая практика'
 
 
-def extract_conclusion_and_recommendations(text: str) -> tuple[str, str]:
+def extract_conclusion_and_recommendations(text: str) -> Tuple[str, str]:
     """
     Извлекает заключение и рекомендации из текста.
     """
@@ -227,7 +323,7 @@ def extract_conclusion_and_recommendations(text: str) -> tuple[str, str]:
     recommendations_start = None
 
     # Маркеры заключения
-    conclusion_markers = ['заключение', 'диагноз', 'клинический диагноз', 'основной диагноз']
+    conclusion_markers = ['заключение', 'диагноз', 'клинический диагноз', 'основной диагноз', 'заключение:']
 
     for marker in conclusion_markers:
         pos = text_lower.find(marker)
@@ -247,28 +343,18 @@ def extract_conclusion_and_recommendations(text: str) -> tuple[str, str]:
     # Извлечение заключения
     conclusion = ""
     if conclusion_start is not None:
-        # Определяем конец заключения
         end_pos = recommendations_start if recommendations_start is not None else len(text)
         conclusion_text = text[conclusion_start:end_pos]
 
-        # Находим позицию маркера
-        marker_found = None
-        marker_len = 0
         for marker in conclusion_markers:
             if marker in conclusion_text.lower():
-                marker_found = marker
-                marker_len = len(marker)
+                marker_pos = conclusion_text.lower().find(marker)
+                after_marker = conclusion_text[marker_pos + len(marker):]
+                after_marker = re.sub(r'^[\s:;,\-]+', '', after_marker)
+                conclusion = after_marker.strip()
                 break
 
-        if marker_found:
-            # Находим позицию маркера в тексте
-            marker_pos = conclusion_text.lower().find(marker_found)
-            # Берем текст ПОСЛЕ маркера
-            after_marker = conclusion_text[marker_pos + marker_len:]
-            # Удаляем только двоеточия, пробелы и знаки препинания в начале
-            after_marker = re.sub(r'^[\s:;,\-]+', '', after_marker)
-            conclusion = after_marker.strip()
-        else:
+        if not conclusion:
             conclusion = conclusion_text.strip()
 
     # Если заключение пустое, ищем альтернативно
@@ -286,7 +372,6 @@ def extract_conclusion_and_recommendations(text: str) -> tuple[str, str]:
     # Извлечение рекомендаций
     recommendations = ""
     if recommendations_start is not None:
-        # Определяем конец рекомендаций
         end_markers = ['подпись', 'врач', 'дата', 'печать', 'с уважением']
         end_pos = len(text)
 
@@ -297,24 +382,15 @@ def extract_conclusion_and_recommendations(text: str) -> tuple[str, str]:
 
         recommendations_text = text[recommendations_start:end_pos]
 
-        # Находим позицию маркера
-        marker_found = None
-        marker_len = 0
         for marker in recommendations_markers:
             if marker in recommendations_text.lower():
-                marker_found = marker
-                marker_len = len(marker)
+                marker_pos = recommendations_text.lower().find(marker)
+                after_marker = recommendations_text[marker_pos + len(marker):]
+                after_marker = re.sub(r'^[\s:;,\-]+', '', after_marker)
+                recommendations = after_marker.strip()
                 break
 
-        if marker_found:
-            # Находим позицию маркера в тексте
-            marker_pos = recommendations_text.lower().find(marker_found)
-            # Берем текст ПОСЛЕ маркера
-            after_marker = recommendations_text[marker_pos + marker_len:]
-            # Удаляем только двоеточия, пробелы и знаки препинания в начале
-            after_marker = re.sub(r'^[\s:;,\-]+', '', after_marker)
-            recommendations = after_marker.strip()
-        else:
+        if not recommendations:
             recommendations = recommendations_text.strip()
 
     # Если рекомендации пустые, ищем альтернативно
@@ -329,27 +405,7 @@ def extract_conclusion_and_recommendations(text: str) -> tuple[str, str]:
                 recommendations = match.group(1).strip()
                 break
 
-    # Восстанавливаем потерянные буквы (если строка начинается не с заглавной)
-    # Это костыль для случаев, когда первая буква была съедена
-    if conclusion and len(conclusion) > 1:
-        # Проверяем, не начинается ли предложение с маленькой буквы
-        if conclusion[0].islower() and conclusion[0] != 'у':
-            # Пробуем восстановить первую букву из контекста
-            possible_starts = ['У', 'В', 'П', 'Н', 'Д', 'С']
-            for start in possible_starts:
-                if start.lower() + conclusion[1:] in conclusion:
-                    conclusion = start + conclusion[1:]
-                    break
-
-    if recommendations and len(recommendations) > 1:
-        if recommendations[0].islower() and recommendations[0] != 'п':
-            possible_starts = ['П', 'Н', 'Р', 'В']
-            for start in possible_starts:
-                if start.lower() + recommendations[1:] in recommendations:
-                    recommendations = start + recommendations[1:]
-                    break
-
-    # Нормализация пробелов (но не удаляем пробелы после точек)
+    # Нормализация пробелов
     conclusion = re.sub(r'\s+', ' ', conclusion).strip()
     recommendations = re.sub(r'\s+', ' ', recommendations).strip()
 
@@ -384,19 +440,15 @@ def postprocess_text(text: str,
     """
     Основная функция постобработки текста.
 
-    Args:
-        text: исходный текст для обработки
-        apply_spell_check: применять ли исправление опечаток
-        filter_stopwords: удалять ли стоп-слова
-
     Returns:
         Dict: {
             'date': дата документа,
-            'document_type': тип документа,
+            'document_type': тип документа (doctor_conclusion, lab_analysis, instrumental_study),
+            'study_type': тип исследования (для анализов и инструментальных),
             'medical_specialty': медицинская специальность,
             'conclusion': заключение,
             'recommendations': рекомендации,
-            'cleaned_text': очищенный текст (опционально)
+            'cleaned_text': очищенный текст
         }
     """
     logger.info("Начало постобработки текста")
@@ -406,6 +458,7 @@ def postprocess_text(text: str,
         return {
             'date': None,
             'document_type': None,
+            'study_type': None,
             'medical_specialty': None,
             'conclusion': '',
             'recommendations': '',
@@ -423,6 +476,12 @@ def postprocess_text(text: str,
     # Извлечение данных
     date = extract_date(original_text)
     document_type = determine_document_type(original_text)
+    category, study_type = determine_study_type(original_text)
+
+    # Для обратной совместимости: если определилось как инструментальное или лабораторное
+    if category in ['instrumental_study', 'lab_analysis']:
+        document_type = category
+
     medical_specialty = extract_medical_specialty(original_text)
     conclusion, recommendations = extract_conclusion_and_recommendations(original_text)
 
@@ -432,22 +491,22 @@ def postprocess_text(text: str,
     result = {
         'date': date,
         'document_type': document_type,
+        'study_type': study_type if document_type != 'doctor_conclusion' else None,
         'medical_specialty': medical_specialty,
         'conclusion': conclusion,
         'recommendations': recommendations,
         'cleaned_text': cleaned_text if filter_stopwords else text
     }
 
-    logger.info(f"Постобработка завершена. Тип: {document_type}, Специальность: {medical_specialty}")
-    logger.info(f"Заключение: {conclusion[:100] if conclusion else 'Не найдено'}...")
-    logger.info(f"Рекомендации: {recommendations[:100] if recommendations else 'Не найдены'}...")
+    logger.info(f"Постобработка завершена. Тип: {document_type}, Исследование: {study_type}")
 
     return result
 
 
 # Пример использования
 if __name__ == "__main__":
-    test_text = """
+    # Тест 1: Консультация врача
+    doctor_text = """
     15.03.2024
     
     ОСМОТР ВРАЧА-КАРДИОЛОГА
@@ -458,18 +517,62 @@ if __name__ == "__main__":
     
     ЗАКЛЮЧЕНИЕ: У пациента выявлена ишемическая болезнь сердца.
     
-    РЕКОМЕНДАЦИИ: Пройти ЭКГ и ЭхоКГ. Консультация кардиолога через месяц.Принимать назначенные препараты.
+    РЕКОМЕНДАЦИИ:
+    1. Пройти ЭКГ и ЭхоКГ.
+    2. Консультация кардиолога через месяц.
     
     Врач: Иванов И.И.
     """
 
-    result = postprocess_text(test_text, apply_spell_check=True, filter_stopwords=False)
+    print("=" * 50)
+    print("ТЕСТ 1: КОНСУЛЬТАЦИЯ ВРАЧА")
+    print("=" * 50)
+    result1 = postprocess_text(doctor_text)
+    print(f"Дата: {result1['date']}")
+    print(f"Тип документа: {result1['document_type']}")
+    print(f"Специальность: {result1['medical_specialty']}")
+    print(f"\nЗАКЛЮЧЕНИЕ:\n{result1['conclusion']}")
+    print(f"\nРЕКОМЕНДАЦИИ:\n{result1['recommendations']}")
 
+    # Тест 2: УЗИ исследование
+    ultrasound_text = """
+    10.02.2024
+    
+    УЗИ ОРГАНОВ БРЮШНОЙ ПОЛОСТИ
+    
+    ЗАКЛЮЧЕНИЕ: Признаков патологии не выявлено. Печень, желчный пузырь, поджелудочная железа без особенностей.
+    
+    Рекомендовано: повторить УЗИ через год.
+    """
+
+    print("\n" + "=" * 50)
+    print("ТЕСТ 2: УЗИ ИССЛЕДОВАНИЕ")
     print("=" * 50)
-    print("РЕЗУЛЬТАТЫ ОБРАБОТКИ:")
+    result2 = postprocess_text(ultrasound_text)
+    print(f"Дата: {result2['date']}")
+    print(f"Тип документа: {result2['document_type']}")
+    print(f"Тип исследования: {result2['study_type']}")
+    print(f"\nЗАКЛЮЧЕНИЕ:\n{result2['conclusion']}")
+    print(f"\nРЕКОМЕНДАЦИИ:\n{result2['recommendations']}")
+
+    # Тест 3: Анализ крови
+    blood_text = """
+    05.03.2024
+    
+    АНАЛИЗ КРОВИ ОБЩИЙ
+    
+    Гемоглобин: 145 г/л (норма 130-160)
+    Лейкоциты: 6.5 (норма 4-9)
+    СОЭ: 12 мм/ч
+    
+    Заключение: Показатели в пределах нормы.
+    """
+
+    print("\n" + "=" * 50)
+    print("ТЕСТ 3: АНАЛИЗ КРОВИ")
     print("=" * 50)
-    print(f"Дата: {result['date']}")
-    print(f"Тип документа: {result['document_type']}")
-    print(f"Специальность: {result['medical_specialty']}")
-    print(f"\nЗАКЛЮЧЕНИЕ:\n{result['conclusion']}")
-    print(f"\nРЕКОМЕНДАЦИИ:\n{result['recommendations']}")
+    result3 = postprocess_text(blood_text)
+    print(f"Дата: {result3['date']}")
+    print(f"Тип документа: {result3['document_type']}")
+    print(f"Тип исследования: {result3['study_type']}")
+    print(f"\nЗАКЛЮЧЕНИЕ:\n{result3['conclusion']}")

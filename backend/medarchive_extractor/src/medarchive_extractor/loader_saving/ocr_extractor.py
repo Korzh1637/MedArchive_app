@@ -8,6 +8,7 @@ import numpy as np
 import cv2
 import io
 import logging
+from pathlib import Path
 from typing import Union, Any, Optional
 
 
@@ -121,16 +122,23 @@ def extract_text_from_image(image_input: Union[Image.Image, np.ndarray, bytes]) 
     """
     Извлекает текст из изображения с помощью Tesseract OCR.
     """
-
+    # Конвертируем входные данные в PIL Image
+    if isinstance(image_input, bytes):
+        image = Image.open(io.BytesIO(image_input))
+    elif isinstance(image_input, np.ndarray):
+        image = Image.fromarray(image_input)
+    elif isinstance(image_input, Image.Image):
+        image = image_input
+    else:
+        raise ValueError(f"Неподдерживаемый тип изображения: {type(image_input)}")
+    
     # Конвертируем в grayscale для лучшего распознавания
     if image.mode != 'L':
         image = image.convert('L')
     
-    
     # Анализируем качество изображения
     mean_bright, std_bright = get_image_parameters(image)
     contrast_adj, brightness_adj, adjust_type = _analyze_image_quality(mean_bright, std_bright)
-
     
     # Предобрабатываем изображение
     processed_image = _preprocess_image(image, brightness_adj, contrast_adj, adjust_type)
