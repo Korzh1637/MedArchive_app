@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.medarchive.main.MainScreen
+import com.example.medarchive.main.journal.CategoryDetailScreen
 import com.example.medarchive.presentation.viewmodels.MainViewModel
 import com.example.medarchive.registration.ConfirmScreen
 import com.example.medarchive.registration.LoginScreen
@@ -14,7 +15,7 @@ import com.example.medarchive.registration.RegLogMainScreen
 import com.example.medarchive.registration.RegistrationScreen
 import com.example.medarchive.registration.ResetNewPasswordScreen
 import com.example.medarchive.registration.ResetPasswordScreen
-import com.example.medarchive.splash.SplashActivity
+import com.example.medarchive.splash.OnBoardingScreen
 
 @Composable
 fun AppNavigation(mainViewModel: MainViewModel) {
@@ -22,10 +23,10 @@ fun AppNavigation(mainViewModel: MainViewModel) {
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Splash.route
+        startDestination = Screen.OnBoarding.route
     ) {
-        composable(Screen.Splash.route) {
-            SplashActivity(navController)
+        composable(Screen.OnBoarding.route) {
+            OnBoardingScreen(navController)
         }
         composable(Screen.RegLogMain.route) {
             RegLogMainScreen(navController)
@@ -55,6 +56,18 @@ fun AppNavigation(mainViewModel: MainViewModel) {
         }
         composable(Screen.Main.route) {
             MainScreen(navController, mainViewModel)
+        }
+
+        composable(
+            route = Screen.HealthCategoryDetail.route,
+            arguments = listOf(navArgument("categoryId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val categoryId = backStackEntry.arguments?.getString("categoryId") ?: ""
+            CategoryDetailScreen(
+                categoryId = categoryId,
+                navController = navController,
+                mainViewModel = mainViewModel
+            )
         }
     }
 }

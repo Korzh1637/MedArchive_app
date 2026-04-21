@@ -1,179 +1,170 @@
 package com.example.medarchive.main.journal
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.example.medarchive.R
-import com.example.medarchive.domain.models.HealthEntry
+import com.example.medarchive.domain.models.HealthCategory
+import com.example.medarchive.navigation.Screen
 import com.example.medarchive.presentation.viewmodels.MainViewModel
 import com.example.medarchive.ui.theme.*
-import java.util.Date
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JournalScreenContent(
+    navController: NavController,
     mainViewModel: MainViewModel,
     modifier: Modifier = Modifier
 ) {
     val currentUser by mainViewModel.currentUser.collectAsState()
-    val healthEntries by mainViewModel.healthEntries.collectAsState()
+    val categories by mainViewModel.healthCategories.collectAsState()
 
     LaunchedEffect(currentUser) {
         currentUser?.let {
-            mainViewModel.loadHealthEntries(it.id)
+            mainViewModel.loadHealthCategories()
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Transparent)
-                .padding(horizontal = 16.dp)
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp)
+    ) {
+        Spacer(modifier = Modifier.height(90.dp))
 
-            Text(
-                text = "Записи здоровья",
-                fontFamily = PoppinsFontFamily,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 20.sp,
-                color = DarkModeBar
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (healthEntries.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+        if (categories.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_journal),
+                        contentDescription = null,
+                        tint = DarkModeBar.copy(alpha = 0.3f),
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Пока нет записей о здоровье",
+                        text = "Нет отслеживаемых показателей",
                         fontFamily = PoppinsFontFamily,
-                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 16.sp,
                         color = DarkModeBar.copy(alpha = 0.6f)
                     )
-                }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(healthEntries, key = { it.localId }) { entry ->
-                        HealthEntryCard(entry = entry)
+                    Button(
+                        onClick = { /* TODO: создание категории */ },
+                        modifier = Modifier.padding(top = 16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MainColor)
+                    ) {
+                        Text("Добавить показатель", color = DarkModeBar)
                     }
                 }
             }
-        }
-
-        // FAB поверх всего
-        if (currentUser != null) {
-            FloatingActionButton(
-                onClick = {
-                    mainViewModel.createHealthEntry(
-                        entryType = "pressure",
-                        unit = "мм рт.ст.",
-                        value1 = 120.0,
-                        value2 = 80.0,
-                        value3 = 72.0,
-                        notes = "После прогулки",
-                        entryDate = Date()
-                    )
-                },
-                containerColor = LightSubMainColor,
-                contentColor = LettersAndIcons,
-                shape = RoundedCornerShape(28.dp),
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 24.dp, bottom = 16.dp)
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize()
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_add),
-                    contentDescription = "Add",
-                    modifier = Modifier.size(28.dp),
-                    tint = DarkModeBar
-                )
+                items(categories, key = { it.id }) { category ->
+                    CategoryTile(
+                        category = category,
+                        onClick = {
+                            navController.navigate(Screen.HealthCategoryDetail.createRoute(category.id))
+                        }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun HealthEntryCard(entry: HealthEntry) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = LightSubMainColor,
-        shadowElevation = 2.dp
+fun CategoryTile(
+    category: HealthCategory,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = LightSubMainColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
+                .fillMaxSize()
                 .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Иконка типа записи
-            Icon(
-                painter = painterResource(
-                    id = when (entry.entryType) {
-                        "pressure" -> R.drawable.ic_doctor
-                        "glucose" -> R.drawable.ic_journal
-                        else -> R.drawable.ic_journal
-                    }
-                ),
-                contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                tint = DarkModeBar
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = when (entry.entryType) {
-                        "pressure" -> "Давление"
-                        "glucose" -> "Глюкоза"
-                        else -> entry.entryType
-                    },
-                    fontFamily = PoppinsFontFamily,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    color = DarkModeBar
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(category.color, category.color.copy(alpha = 0.7f))
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(id = category.iconRes),
+                    contentDescription = null,
+                    tint = DarkModeBar,
+                    modifier = Modifier.size(24.dp)
                 )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = category.name,
+                fontFamily = PoppinsFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 18.sp,
+                color = DarkModeBar
+            )
+            Text(
+                text = category.unit,
+                fontFamily = PoppinsFontFamily,
+                fontSize = 14.sp,
+                color = DarkModeBar.copy(alpha = 0.7f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            if (category.lastValue != null) {
                 Text(
-                    text = buildString {
-                        append(entry.value1?.let { "%.1f".format(it) } ?: "-")
-                        if (entry.value2 != null) append("/${"%.1f".format(entry.value2)}")
-                        if (entry.value3 != null) append("  пульс ${"%.0f".format(entry.value3)}")
-                        entry.unit?.let { append(" $it") }
-                    },
+                    text = "${category.lastValue} ${category.unit}",
+                    fontFamily = PoppinsFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                    color = MainColor
+                )
+            } else {
+                Text(
+                    text = "Нет данных",
                     fontFamily = PoppinsFontFamily,
                     fontSize = 14.sp,
-                    color = DarkModeBar.copy(alpha = 0.8f)
+                    color = DarkModeBar.copy(alpha = 0.5f)
                 )
-                entry.notes?.let {
-                    Text(
-                        text = it,
-                        fontFamily = PoppinsFontFamily,
-                        fontSize = 12.sp,
-                        color = DarkModeBar.copy(alpha = 0.6f)
-                    )
-                }
             }
-            Text(
-                text = entry.entryDate.toString().substringBefore('T'),
-                fontFamily = PoppinsFontFamily,
-                fontSize = 12.sp,
-                color = DarkModeBar.copy(alpha = 0.6f)
-            )
         }
     }
 }

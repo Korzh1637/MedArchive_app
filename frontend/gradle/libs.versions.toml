@@ -3,11 +3,10 @@ agp = "8.9.1"
 kotlin = "2.0.21"
 ksp = "2.0.21-1.0.28"
 room = "2.6.1"   # или 2.7.0-beta01, но 2.6.1 стабильнее
-
 coreKtx = "1.17.0"
 lifecycle = "2.8.7"
 activityCompose = "1.9.0"
-
+securityCrypto = "1.1.0-alpha06"
 composeBom = "2024.09.00"
 
 junit = "4.13.2"
@@ -16,14 +15,19 @@ espresso = "3.5.1"
 coreKtxVersion = "1.18.0"
 uiGraphics = "1.10.6"
 runtime = "1.10.6"
+vico = "2.2.0"
+remoteCreationCore = "1.0.0-alpha07"
+foundation = "1.10.6"
+uiText = "1.10.6"
+runtimeSaveable = "1.10.6"
 
 [libraries]
 # Core
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 # Lifecycle
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
-
+vico-compose = { group = "com.patrykandpatrick.vico", name = "compose", version.ref = "vico" }
 # Compose
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 
@@ -54,6 +58,10 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtxVersion" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "uiGraphics" }
 androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime", version.ref = "runtime" }
+androidx-compose-remote-creation-core = { group = "androidx.compose.remote", name = "remote-creation-core", version.ref = "remoteCreationCore" }
+androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
+androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiText" }
+androidx-compose-runtime-saveable = { group = "androidx.compose.runtime", name = "runtime-saveable", version.ref = "runtimeSaveable" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

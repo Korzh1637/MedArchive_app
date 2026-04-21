@@ -1,13 +1,24 @@
 package com.example.medarchive.main
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -17,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.medarchive.R
 import com.example.medarchive.presentation.viewmodels.MainViewModel
+import com.example.medarchive.registration.BackgroundCircles
 import com.example.medarchive.ui.theme.*
 
 @Composable
@@ -27,78 +39,27 @@ fun MainScaffold(
     onTabSelected: (Int) -> Unit,
     content: @Composable () -> Unit
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        // ==================== ФОН ====================
-        Image(
-            painter = painterResource(id = R.drawable.main_screen),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(MainColor, RegMenu)
+                )
+            )
+    ) {
+        BackgroundCircles()
 
-        // ==================== ВЕРХНЯЯ ПАНЕЛЬ ====================
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = Color.Transparent,
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 16.dp)
-            ) {
-                IconButton(onClick = { println("Notifications clicked") }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.bell),
-                        modifier = Modifier.size(30.dp),
-                        contentDescription = "Notifications",
-                        tint = LettersAndIcons
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(72.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = when (selectedTab) {
-                            0 -> "Дом"
-                            1 -> "Журнал"
-                            2 -> "Профиль"
-                            else -> ""
-                        },
-                        modifier = Modifier.padding(horizontal = 30.dp),
-                        fontFamily = PoppinsFontFamily,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 30.sp,
-                        color = LettersAndIcons,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-
-                IconButton(onClick = { println("Search clicked") }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.search),
-                        modifier = Modifier.size(30.dp),
-                        contentDescription = "Search",
-                        tint = LettersAndIcons
-                    )
-                }
-            }
-        }
-
-        // ==================== ОСНОВНОЙ КОНТЕНТ ====================
+        // Основной контент (с отступом снизу под нижнюю панель)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 90.dp) // оставляем место под нижнюю панель
+                .padding(bottom = 90.dp)
         ) {
             content()
         }
 
-        // ==================== НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ ====================
+        // Нижняя панель навигации
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -120,19 +81,19 @@ fun MainScaffold(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     NavigationTab(
-                        icon = R.drawable.archive,
-                        label = "Дом",
+                        icon = Icons.Default.DateRange,
+                        label = "Журнал",
                         isSelected = selectedTab == 0,
                         onClick = { onTabSelected(0) }
                     )
                     NavigationTab(
-                        icon = R.drawable.ic_bottom_journal,
-                        label = "Журнал",
+                        icon = Icons.Default.Home,
+                        label = "Дом",
                         isSelected = selectedTab == 1,
                         onClick = { onTabSelected(1) }
                     )
                     NavigationTab(
-                        icon = R.drawable.user_circle,
+                        icon = Icons.Default.AccountCircle,
                         label = "Профиль",
                         isSelected = selectedTab == 2,
                         onClick = { onTabSelected(2) }
@@ -145,7 +106,7 @@ fun MainScaffold(
 
 @Composable
 fun NavigationTab(
-    icon: Int,
+    icon: ImageVector,
     label: String,
     isSelected: Boolean,
     onClick: () -> Unit
@@ -166,10 +127,10 @@ fun NavigationTab(
                 .height(70.dp)
         ) {
             Icon(
-                painter = painterResource(id = icon),
+                imageVector = icon,
                 contentDescription = label,
                 modifier = Modifier.size(32.dp),
-                tint = if (isSelected) DarkModeBar else DarkModeBar.copy(alpha = 0.6f)
+                tint = LettersAndIcons
             )
         }
     }

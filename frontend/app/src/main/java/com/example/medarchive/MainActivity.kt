@@ -3,6 +3,7 @@ package com.example.medarchive
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.medarchive.data.local.DatabaseRepository
 import com.example.medarchive.navigation.AppNavigation

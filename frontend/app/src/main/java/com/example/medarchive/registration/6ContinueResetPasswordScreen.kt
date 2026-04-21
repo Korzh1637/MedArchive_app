@@ -78,12 +78,7 @@ fun ResetNewPasswordScreen(
                 )
             )
     ) {
-        // Декоративные круги
-        AnimatedVisibility(
-            visibleState = transitionState,
-            enter = fadeIn(animationSpec = tween(1500, delayMillis = 500)) +
-                    slideInVertically(initialOffsetY = { -40 }, animationSpec = tween(600, delayMillis = 100))
-        ) { AnimatedBackgroundCircles() }
+        BackgroundCircles()
 
         Column(
             modifier = Modifier

@@ -1,42 +1,99 @@
 package com.example.medarchive.main.mainscreen
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
+import android.Manifest
+import android.content.Context
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import com.example.medarchive.R
 import com.example.medarchive.domain.models.Document
 import com.example.medarchive.presentation.viewmodels.MainViewModel
 import com.example.medarchive.ui.theme.*
+import java.io.File
+import java.text.SimpleDateFormat
+import android.os.Environment
+import java.io.IOException
+import java.util.Date
+import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreenContent(
     mainViewModel: MainViewModel,
-    chosenElement: Int,
-    onChosenElementChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val configuration = LocalConfiguration.current
-    val screenHeight = configuration.screenHeightDp.dp
-
+    val context = LocalContext.current
     val currentUser by mainViewModel.currentUser.collectAsState()
     val documents by mainViewModel.documents.collectAsState()
+
+    var showSourceDialog by remember { mutableStateOf(false) }
+    var tempImageUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+
+    // Лончер для камеры
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            tempImageUri?.let { uri ->
+                saveImageAndCreateDocument(context, uri, mainViewModel, currentUser?.id)
+            }
+        }
+    }
+
+    // Лончер для галереи
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            saveImageAndCreateDocument(context, it, mainViewModel, currentUser?.id)
+        }
+    }
+
+    // Лончер для разрешения камеры
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            val file = createTempImageFile(context)
+            file?.let {
+                tempImageUri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.provider",
+                    it
+                )
+                cameraLauncher.launch(tempImageUri!!)
+            }
+        }
+    }
 
     LaunchedEffect(currentUser) {
         currentUser?.let {
@@ -44,280 +101,358 @@ fun HomeScreenContent(
         }
     }
 
-    val filteredDocuments = remember(documents, chosenElement) {
-        when (chosenElement) {
-            1 -> documents.filter { it.documentType == "analysis" || it.documentType == "анализ" }
-            2 -> documents.filter { it.documentType == "doctor" || it.documentType == "врач" }
-            3 -> documents.filter { it.documentType == "image" || it.documentType == "снимок" }
-            else -> emptyList()
-        }
-    }
-
-    val contentHeight by animateDpAsState(
-        targetValue = if (chosenElement == 0) screenHeight * 0.42f else screenHeight * 0.9f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "contentHeight"
-    )
-
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(contentHeight),
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            color = MainColor.copy(alpha = 0.7f),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Transparent)
-                    .padding(horizontal = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Заголовок + Кнопка закрытия
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.Transparent)
-                        .padding(vertical = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (chosenElement != 0) {
-                        Text(
-                            text = when (chosenElement) {
-                                1 -> "Анализы"
-                                2 -> "Врачи"
-                                3 -> "Снимки"
-                                else -> ""
-                            },
-                            fontFamily = PoppinsFontFamily,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 18.sp,
-                            color = DarkModeBar
-                        )
-                    } else {
-                        Spacer(modifier = Modifier.width(48.dp))
-                    }
-
-                    if (chosenElement != 0) {
-                        IconButton(onClick = { onChosenElementChange(0) }) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.close_md),
-                                contentDescription = "Close",
-                                tint = DarkModeBar,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    } else {
-                        Spacer(modifier = Modifier.width(48.dp))
-                    }
+    // Диалог выбора источника
+    if (showSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showSourceDialog = false },
+            title = { Text("Добавить документ") },
+            text = { Text("Выберите источник изображения") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSourceDialog = false
+                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                }) {
+                    Text("Камера")
                 }
-
-                // Свёрнутое состояние
-                if (chosenElement == 0) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().background(Color.Transparent),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        CategoryButton(
-                            icon = R.drawable.ic_journal,
-                            label = "Анализы",
-                            isSelected = false,
-                            onClick = { onChosenElementChange(1) }
-                        )
-                        CategoryButton(
-                            icon = R.drawable.ic_doctor,
-                            label = "Врачи",
-                            isSelected = false,
-                            onClick = { onChosenElementChange(2) }
-                        )
-                        CategoryButton(
-                            icon = R.drawable.ic_doctor,
-                            label = "Снимки",
-                            isSelected = false,
-                            onClick = { onChosenElementChange(3) }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Button(
-                        onClick = { /* Показать все недавние */ },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = RegMenu,
-                            contentColor = LettersAndIcons
-                        ),
-                        shape = RoundedCornerShape(22.dp),
-                        elevation = ButtonDefaults.buttonElevation(0.dp)
-                    ) {
-                        Text(
-                            text = "Недавние",
-                            fontFamily = PoppinsFontFamily,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 16.sp,
-                            color = LettersAndIcons
-                        )
-                    }
-                }
-
-                // Развёрнутое состояние: список файлов
-                if (chosenElement != 0) {
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    if (filteredDocuments.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Нет файлов в этой категории",
-                                fontFamily = PoppinsFontFamily,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 14.sp,
-                                color = DarkModeBar.copy(alpha = 0.8f),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            horizontalAlignment = Alignment.Start
-                        ) {
-                            items(filteredDocuments, key = { it.localId }) { document ->
-                                DocumentItem(
-                                    document = document,
-                                    onClick = { println("Clicked: ${document.title}") },
-                                    modifier = Modifier.padding(vertical = 6.dp)
-                                )
-                            }
-                        }
-                    }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showSourceDialog = false
+                    galleryLauncher.launch("image/*")
+                }) {
+                    Text("Галерея")
                 }
             }
-        }
-
-        // FAB для добавления документа
-        if (chosenElement == 0 && currentUser != null) {
-            FloatingActionButton(
-                onClick = {
-                    mainViewModel.createDocument(
-                        imagePath = null,
-                        title = "Новый документ",
-                        type = "analysis",
-                        text = "Содержимое документа"
-                    )
-                },
-                containerColor = LightSubMainColor,
-                contentColor = LettersAndIcons,
-                shape = RoundedCornerShape(28.dp),
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 24.dp, bottom = 16.dp)
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_add),
-                    contentDescription = "Add",
-                    modifier = Modifier.size(28.dp),
-                    tint = DarkModeBar
-                )
-            }
-        }
+        )
     }
-}
 
-@Composable
-fun DocumentItem(document: Document, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
+    Column(
         modifier = modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        color = LightSubMainColor,
-        shadowElevation = 2.dp
+            .fillMaxSize()
+            .background(Color.Transparent)
+            .padding(horizontal = 16.dp)
     ) {
+        Spacer(modifier = Modifier.height(24.dp))
+
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                painter = painterResource(
-                    id = when (document.documentType) {
-                        "analysis", "анализ" -> R.drawable.ic_journal
-                        "doctor", "врач" -> R.drawable.ic_doctor
-                        else -> R.drawable.ic_doctor
-                    }
-                ),
-                contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                tint = DarkModeBar
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = document.title ?: "Без названия",
-                    fontFamily = PoppinsFontFamily,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    color = DarkModeBar
-                )
-                Text(
-                    text = document.createdAt.toString().substringBefore('T'),
-                    fontFamily = PoppinsFontFamily,
-                    fontSize = 12.sp,
-                    color = DarkModeBar.copy(alpha = 0.7f)
+            IconButton(onClick = { /* TODO: уведомления */ }) {
+                Icon(
+                    imageVector = Icons.Default.Notifications,
+                    contentDescription = "Уведомления",
+                    tint = LettersAndIcons,
+                    modifier = Modifier.size(28.dp)
                 )
             }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Добрый день,",
+                    fontFamily = PoppinsFontFamily,
+                    fontSize = 16.sp,
+                    color = LettersAndIcons.copy(alpha = 0.8f)
+                )
+                Text(
+                    text = currentUser?.fullName ?: "Гость",
+                    fontFamily = PoppinsFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                    color = LettersAndIcons
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(LightSubMainColor)
+                    .clickable { showSourceDialog = true },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add elem",
+                    tint = DarkModeBar,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        SearchBar(
+            query = "",
+            onQueryChange = {},
+            onSearch = {},
+            active = false,
+            onActiveChange = {},
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .clip(RoundedCornerShape(28.dp)),
+            placeholder = {
+                Text(
+                    "Поиск документов...",
+                    fontFamily = PoppinsFontFamily,
+                    color = LettersAndIcons
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = LettersAndIcons
+                )
+            },
+            colors = SearchBarDefaults.colors(
+                containerColor = LightSubMainColor.copy(alpha = 0.8f)
+            )
+        ) {}
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Категории",
+            fontFamily = PoppinsFontFamily,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 18.sp,
+            color = LettersAndIcons
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        val categories = listOf(
+            Category("Анализы", R.drawable.ic_journal, Color(0xFFE1BEE7)),
+            Category("Врачи", R.drawable.ic_doctor, Color(0xFFBBDEFB)),
+            Category("Снимки", R.drawable.ic_add, Color(0xFFC8E6C9)),
+        )
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(categories) { category ->
+                CategoryChip(
+                    category = category,
+                    onClick = { /* фильтр по категории */ }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Недавние документы",
+                fontFamily = PoppinsFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 18.sp,
+                color = LettersAndIcons
+            )
+            TextButton(onClick = { /* показать все */ }) {
+                Text(
+                    "Все",
+                    fontFamily = PoppinsFontFamily,
+                    color = DarkModeBar
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (documents.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_journal),
+                        contentDescription = null,
+                        tint = DarkModeBar.copy(alpha = 0.3f),
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Пока нет документов",
+                        fontFamily = PoppinsFontFamily,
+                        color = DarkModeBar.copy(alpha = 0.6f)
+                    )
+                    Text(
+                        text = "Нажмите + чтобы добавить",
+                        fontFamily = PoppinsFontFamily,
+                        fontSize = 14.sp,
+                        color = DarkModeBar.copy(alpha = 0.4f)
+                    )
+                }
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                items(documents, key = { it.localId }) { doc ->
+                    DocumentGridCard(document = doc)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+private fun createTempImageFile(context: Context): File? {
+    val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+    val imageFileName = "JPEG_${timeStamp}_"
+    val storageDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+    return try {
+        File.createTempFile(imageFileName, ".jpg", storageDir)
+    } catch (e: IOException) {
+        e.printStackTrace()
+        null
+    }
+}
+
+private fun saveImageAndCreateDocument(
+    context: Context,
+    imageUri: Uri,
+    mainViewModel: MainViewModel,
+    userId: Int?
+) {
+    userId ?: return
+    try {
+        val inputStream = context.contentResolver.openInputStream(imageUri) ?: return
+        val fileName = "doc_${System.currentTimeMillis()}.jpg"
+        val destinationFile = File(context.filesDir, fileName)
+        destinationFile.outputStream().use { outputStream ->
+            inputStream.copyTo(outputStream)
+        }
+        mainViewModel.createDocument(
+            imagePath = destinationFile.absolutePath,
+            title = "Новый документ",
+            type = "analysis",
+            text = null
+        )
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+
+data class Category(
+    val name: String,
+    val iconRes: Int,
+    val color: Color
+)
+
+@Composable
+fun CategoryChip(
+    category: Category,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .clip(RoundedCornerShape(30.dp))
+            .clickable(onClick = onClick),
+        color = LightSubMainColor,
+        shadowElevation = 4.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(category.color),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(id = category.iconRes),
+                    contentDescription = null,
+                    tint = DarkModeBar,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = category.name,
+                fontFamily = PoppinsFontFamily,
+                fontWeight = FontWeight.Medium,
+                color = LettersAndIcons
+            )
         }
     }
 }
 
 @Composable
-fun CategoryButton(
-    icon: Int,
-    label: String,
-    onClick: () -> Unit,
-    isSelected: Boolean
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(8.dp).background(Color.Transparent)
+fun DocumentGridCard(document: Document) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .clickable { /* переход к деталям */ },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = LightSubMainColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Surface(
-            onClick = onClick,
-            shape = RoundedCornerShape(24.dp),
-            color = LightSubMainColor,
-            shadowElevation = 6.dp
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp)
         ) {
+            // Иконка типа
             Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.size(100.dp)
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(MainColor, MainColor.copy(alpha = 0.7f))
+                        )
+                    ),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    painter = painterResource(id = icon),
-                    contentDescription = label,
-                    modifier = Modifier.size(48.dp),
-                    tint = DarkModeBar
+                    painter = painterResource(
+                        id = when (document.documentType) {
+                            "analysis", "анализ" -> R.drawable.ic_journal
+                            "doctor", "врач" -> R.drawable.ic_doctor
+                            else -> R.drawable.ic_add
+                        }
+                    ),
+                    contentDescription = null,
+                    tint = DarkModeBar,
+                    modifier = Modifier.size(24.dp)
                 )
             }
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = document.title ?: "Без названия",
+                fontFamily = PoppinsFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp,
+                color = DarkModeBar,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = document.createdAt.toString().substringBefore('T'),
+                fontFamily = PoppinsFontFamily,
+                fontSize = 12.sp,
+                color = DarkModeBar.copy(alpha = 0.6f)
+            )
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = label,
-            fontFamily = PoppinsFontFamily,
-            fontWeight = FontWeight.Medium,
-            fontSize = 14.sp,
-            color = LettersAndIcons
-        )
     }
 }
