@@ -137,14 +137,18 @@ async def sync_user_endpoint(
     return { "user_id": user_id, "status": "synced" }
 
 
-@app.post("/parse-and-sync/document")
+@app.post("/sync/document")
 async def sync_document_endpoint(
     local_id: str = Form(...),
     user_id: int = Form(...),
+    title: str = Form(None),
+    type_of_doc: str = Form(None),
+    text: str = Form(None),
     created_at: datetime = Form(...),
     updated_at: datetime = Form(...),
     deleted_at: Optional[datetime] = Form(None),
     image: UploadFile = File(...),
+    flag_for_parse: int = Form(...),
     current_user_id: int = Depends(get_current_user)
 ):
     """
@@ -167,16 +171,19 @@ async def sync_document_endpoint(
     if user_id != current_user_id:
         raise HTTPException(status_code=403, detail="Forbidden")
     
-    info_dict = process_medical_image(image)
+    if flag_for_parse:
+        info_dict = process_medical_image(image)
+        title = info_dict['document_type']
+        type_of_doc = info_dict['medical_specialty'] if info_dict['document_type'] == "doctor_conclusion" else info_dict['study_type']
+        text = info_dict['conclusion'] + info_dict['recommendations']
+
     raw = await image.read()
     encrypted_image = cipher.encrypt(raw)
-    type_of_doc = info_dict['medical_specialty'] if info_dict['document_type'] == "doctor_conclusion" else info_dict['study_type']
-    text = info_dict['conclusion'] + info_dict['recommendations']
 
     doc_id = db.sync_document(
         local_id=local_id,
         user_id=user_id,
-        title=info_dict['document_type'],
+        title=title,
         document_type=type_of_doc,
         content=text,
         image_data=encrypted_image,
@@ -188,7 +195,7 @@ async def sync_document_endpoint(
         raise HTTPException(status_code=500, detail="Document sync failed")
     
     return {"document_id": doc_id, "local_id": local_id, "user_id": user_id,
-            "title": info_dict['document_type'], "document_type": type_of_doc,
+            "title": title, "document_type": type_of_doc,
             "content": text, "image_data": encrypted_image, "created_at": created_at,
             "updated_at": updated_at, "deleted_at": deleted_at}
 
