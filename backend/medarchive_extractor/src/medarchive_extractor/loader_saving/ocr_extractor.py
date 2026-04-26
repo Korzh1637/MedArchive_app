@@ -11,7 +11,7 @@ import logging
 from pathlib import Path
 from typing import Union, Any, Optional
 
-
+logger = logging.getLogger(__name__)
 
 def get_image_parameters(img: Image.Image) -> tuple:
     """

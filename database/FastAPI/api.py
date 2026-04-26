@@ -17,6 +17,8 @@ from backend.medarchive_extractor.src.medarchive_extractor.core import process_m
 # ---------- Конфигурация ----------
 load_dotenv()
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("JWT_SECRET_KEY is not set")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
@@ -71,7 +73,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 @app.post("/auth/register", response_model=dict)
 async def register(
     email: str = Form(...),
-    password_hash: str = Form(...),
+    password: str = Form(...),
     full_name: str = Form(...),
     created_at: datetime = Form(...),
     updated_at: datetime = Form(...),
@@ -79,9 +81,10 @@ async def register(
     is_active: bool = Form(True)
 ):
     """Регистрация пользователя (вызывает sync_user)"""
+    hashed_password = hash_password(password)
     user_id = db.sync_user(
         email=email,
-        password_hash=password_hash,
+        password_hash=hashed_password,
         full_name=full_name,
         created_at=created_at,
         updated_at=updated_at,
@@ -151,33 +154,22 @@ async def sync_document_endpoint(
     flag_for_parse: int = Form(...),
     current_user_id: int = Depends(get_current_user)
 ):
-    """
-    Синхронизация документа с возможностью загрузить изображение.
-    Изображение шифруется и сохраняется в БД.
-
-    Пример для фронденда:
-    // Retrofit
-    @Multipart
-    @POST("/parse-and-sync/document")
-    suspend fun syncDocument(
-        @Part("local_id") localId: RequestBody,
-        @Part("user_id") userId: RequestBody,
-        @Part("created_at") createdAt: RequestBody,
-        @Part("updated_at") updatedAt: RequestBody,
-        @Part("deleted_at") deletedAt: RequestBody? = null,
-        @Part image: MultipartBody.Part
-    )
-    """
     if user_id != current_user_id:
         raise HTTPException(status_code=403, detail="Forbidden")
-    
+
+    raw = await image.read()   # 👈 читаем ОДИН раз
+
+    info_dict = None
     if flag_for_parse:
-        info_dict = process_medical_image(image)
+        info_dict = process_medical_image(raw)
         title = info_dict['document_type']
-        type_of_doc = info_dict['medical_specialty'] if info_dict['document_type'] == "doctor_conclusion" else info_dict['study_type']
+        type_of_doc = (
+            info_dict['medical_specialty']
+            if info_dict['document_type'] == "doctor_conclusion"
+            else info_dict['study_type']
+        )
         text = info_dict['conclusion'] + info_dict['recommendations']
 
-    raw = await image.read()
     encrypted_image = cipher.encrypt(raw)
 
     doc_id = db.sync_document(
@@ -191,14 +183,21 @@ async def sync_document_endpoint(
         updated_at=updated_at,
         deleted_at=deleted_at
     )
+
     if not doc_id:
         raise HTTPException(status_code=500, detail="Document sync failed")
     
-    return {"document_id": doc_id, "local_id": local_id, "user_id": user_id,
-            "title": title, "document_type": type_of_doc,
-            "content": text, "image_data": encrypted_image, "created_at": created_at,
-            "updated_at": updated_at, "deleted_at": deleted_at}
-
+    return {
+        "document_id": doc_id,
+        "local_id": local_id,
+        "user_id": user_id,
+        "title": title,
+        "document_type": type_of_doc,
+        "content": text,
+        "created_at": created_at,
+        "updated_at": updated_at,
+        "deleted_at": deleted_at
+    }
 
 @app.post("/sync/health_entry")
 async def sync_health_entry_endpoint(
@@ -212,7 +211,7 @@ async def sync_health_entry_endpoint(
     notes: Optional[str] = Form(...),
     entry_date: datetime = Form(...),
     created_at: datetime = Form(...),
-    updated_at: datetime = Form(...),
+    updated_at: datetime = Form(...),   
     deleted_at: Optional[datetime] = Form(None),
     current_user_id: int = Depends(get_current_user)
 ):

@@ -65,7 +65,6 @@ class PostgreSQLDatabase:
                 conn.commit()
     
     # ==================== Методы для синхронизации ====================
-    
     def sync_user(self, email, password_hash, full_name, 
                   created_at, updated_at, last_login_at, is_active):
         """
@@ -92,7 +91,8 @@ class PostgreSQLDatabase:
                          updated_at, last_login_at, is_active))
                     
                     conn.commit()
-                    return cur.fetchone()[0]
+                    result = cur.fetchone()
+                    return result["id"] if result else None
                 except Exception as e:
                     print(f"Ошибка синхронизации пользователя: {e}")
                     conn.rollback()
