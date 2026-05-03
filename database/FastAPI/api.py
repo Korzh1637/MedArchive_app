@@ -114,7 +114,7 @@ async def recognize_document(
     document_type = info_dict['medical_specialty'] if info_dict['document_type'] == "doctor_conclusion" else info_dict['study_type']
     text = info_dict['conclusion'] + info_dict['recommendations']
 
-    return {"title": title, "document_type": document_type, "content": text,}
+    return {"title": title, "document_type": document_type, "content": text}
     
 
 # -------------------- СИНХРОНИЗАЦИЯ (основные методы класса) --------------------
