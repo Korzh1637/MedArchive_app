@@ -101,11 +101,23 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     access_token = create_access_token(data={"sub": str(user["id"])})
     return {"access_token": access_token, "token_type": "bearer"}
 
+@app.post("/recogn_doc")
+async def recognize_document(
+    image: UploadFile = File(...)
+):
+    raw = await image.read()
+    info_dict = process_medical_image(raw)
+    title = info_dict['document_type']
+    document_type = info_dict['medical_specialty'] if info_dict['document_type'] == "doctor_conclusion" else info_dict['study_type']
+    text = info_dict['conclusion'] + info_dict['recommendations']
+
+    return {"title": title, "document_type": document_type, "content": text,}
+    
 
 # -------------------- СИНХРОНИЗАЦИЯ (основные методы класса) --------------------
 @app.post("/sync/user")
 async def sync_user_endpoint(
-    user_id: Optional[int] = Form(...),
+    user_id: int = Form(...),
     email: str = Form(...),
     password_hash: str = Form(...),
     full_name: str = Form(...),
@@ -141,14 +153,13 @@ async def sync_user_endpoint(
 async def sync_document_endpoint(
     local_id: str = Form(...),
     user_id: int = Form(...),
-    title: str = Form(None),
-    type_of_doc: str = Form(None),
-    text: str = Form(None),
+    title: str = Form(...),
+    type_of_doc: str = Form(...),
+    text: str = Form(...),
     created_at: datetime = Form(...),
     updated_at: datetime = Form(...),
     deleted_at: Optional[datetime] = Form(None),
     image: UploadFile = File(...),
-    flag_for_parse: int = Form(...),
     current_user_id: int = Depends(get_current_user)
 ):
     """
@@ -158,7 +169,7 @@ async def sync_document_endpoint(
     Пример для фронденда:
     // Retrofit
     @Multipart
-    @POST("/parse-and-sync/document")
+    @POST("/sync/document")
     suspend fun syncDocument(
         @Part("local_id") localId: RequestBody,
         @Part("user_id") userId: RequestBody,
@@ -171,12 +182,6 @@ async def sync_document_endpoint(
     if user_id != current_user_id:
         raise HTTPException(status_code=403, detail="Forbidden")
     
-    if flag_for_parse:
-        info_dict = process_medical_image(image)
-        title = info_dict['document_type']
-        type_of_doc = info_dict['medical_specialty'] if info_dict['document_type'] == "doctor_conclusion" else info_dict['study_type']
-        text = info_dict['conclusion'] + info_dict['recommendations']
-
     raw = await image.read()
     encrypted_image = cipher.encrypt(raw)
 
@@ -196,7 +201,7 @@ async def sync_document_endpoint(
     
     return {"document_id": doc_id, "local_id": local_id, "user_id": user_id,
             "title": title, "document_type": type_of_doc,
-            "content": text, "image_data": encrypted_image, "created_at": created_at,
+            "content": text, "created_at": created_at,
             "updated_at": updated_at, "deleted_at": deleted_at}
 
 
@@ -205,11 +210,11 @@ async def sync_health_entry_endpoint(
     local_id: str = Form(...),
     user_id: int = Form(...),
     entry_type: str = Form(...),
-    value1: Optional[float] = Form(...),
+    value1: float = Form(...),
     value2: Optional[float] = Form(None),
     value3: Optional[float] = Form(None),
-    unit: Optional[str] = Form(...),
-    notes: Optional[str] = Form(...),
+    unit: str = Form(...),
+    notes: str = Form(...),
     entry_date: datetime = Form(...),
     created_at: datetime = Form(...),
     updated_at: datetime = Form(...),
