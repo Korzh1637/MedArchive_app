@@ -124,6 +124,8 @@ class DatabaseRepository(context: Context) {
         }
     }
 
+
+
     suspend fun getDocument(userId: Int, localId: String): Document? {
         return withContext(Dispatchers.IO) {
             documentDao.getDocument(userId, localId)?.toDomainModel()
@@ -251,6 +253,12 @@ class DatabaseRepository(context: Context) {
             val now = Date()
             entryDao.softDeleteEntry(userId, localId, now, now)
             true
+        }
+    }
+
+    suspend fun getAllEntriesList(userId: Int): List<HealthEntry> {
+        return withContext(Dispatchers.IO) {
+            entryDao.getAllEntries(userId).map { it.toDomainModel() }
         }
     }
 

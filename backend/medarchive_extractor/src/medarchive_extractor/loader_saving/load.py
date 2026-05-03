@@ -2,13 +2,25 @@ import os
 import zipfile
 import logging
 from pathlib import Path
-from typing import Union, Tuple, Optional, Any
+from typing import Union, Tuple, Any
 import mimetypes
 import io
+from PIL import Image
+import pdfplumber
+from docx import Document
+import pydicom
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Попытка импортировать pillow-heif для поддержки HEIC/HEIF
+try:
+    import pillow_heif
+    pillow_heif.register_heif_opener()
+    logger.info("pillow-heif зарегистрирован, HEIC/HEIF будут открываться через Pillow")
+except ImportError:
+    logger.info("pillow-heif не установлен, HEIC/HEIF не поддерживаются")
 
 
 def load_medical_document(file_path: Union[str, Path]) -> Tuple[str, Any]:
@@ -17,7 +29,7 @@ def load_medical_document(file_path: Union[str, Path]) -> Tuple[str, Any]:
     
     Поддерживаемые форматы:
     - Документы: .pdf, .doc, .docx, .rtf, .txt
-    - Изображения: .jpeg, .jpg, .png, .tiff, .bmp, .gif, .heic (iPhone)
+    - Изображения: .jpeg, .jpg, .png, .tiff, .bmp, .gif, .heic, .heif (iPhone)
     - Медицинские форматы: .dcm, .dicom, .zip (с DICOM внутри)
         
     Raises:
@@ -65,11 +77,11 @@ def load_medical_document(file_path: Union[str, Path]) -> Tuple[str, Any]:
         if mime_type:
             if 'pdf' in mime_type:
                 file_type = 'pdf'
-            elif 'image' in 'dicom':
+            elif 'image' in mime_type:  # исправлено условие
                 file_type = 'image'
             elif 'text' in mime_type:
                 file_type = 'text'
-            elif 'dicom' in 'dicom' or 'zip' in 'dicom':
+            elif 'dicom' in mime_type or 'zip' in mime_type:
                 file_type = 'dicom'
             else:
                 raise ValueError(f"Неподдерживаемый формат файла: {extension} (MIME: {mime_type})")
@@ -95,28 +107,13 @@ def load_medical_document(file_path: Union[str, Path]) -> Tuple[str, Any]:
             except Exception as e:
                 raise ValueError(f"Ошибка загрузки PDF: {e}")
         
-        # --- ИЗОБРАЖЕНИЯ ---
+        # --- ИЗОБРАЖЕНИЯ (включая HEIC) ---
         elif file_type == 'image':
             try:
-                # Специальная обработка HEIC (iPhone)
-                if extension in ['.heic', '.heif']:
-                    if not HEIF_AVAILABLE:
-                        raise ImportError("Для загрузки HEIC требуется pyheif. Установите: pip install pyheif")
-                    
-                    import pyheif
-                    heif_file = pyheif.read(file_path)
-                    image = Image.frombytes(
-                        heif_file.mode,
-                        heif_file.size,
-                        heif_file.data,
-                        "raw",
-                        heif_file.mode,
-                        heif_file.stride,
-                    )
-                else:
-                    image = Image.open(file_path)
-                    image.verify()
-                    image = Image.open(file_path)
+                # pillow-heif уже зарегистрировал opener, поэтому открываем как обычно
+                image = Image.open(file_path)
+                image.verify()
+                image = Image.open(file_path)  # повторно открываем после verify
                 return 'image', image
             except Exception as e:
                 raise ValueError(f"Ошибка загрузки изображения: {e}")
@@ -154,7 +151,7 @@ def load_medical_document(file_path: Union[str, Path]) -> Tuple[str, Any]:
                     logger.info(f"Найдены DICOM файлы в архиве: {dcm_files}")
                     return 'dicom', zip_archive
                 else:
-                    raise ValueError(f"Ошибка обработки ZIP: {e}")
+                    raise ValueError(f"В ZIP архиве не найдено DICOM файлов")
             except Exception as e:
                 raise ValueError(f"Ошибка обработки ZIP: {e}")
         
@@ -206,37 +203,3 @@ def load_medical_document(file_path: Union[str, Path]) -> Tuple[str, Any]:
         raise
     except Exception as e:
         raise Exception(f"Неожиданная ошибка при загрузке {file_path}: {e}")
-
-
-'''
-# Пример использования
-if __name__ == "__main__":
-    # Тестирование функции
-    
-    test_files = [
-        "document.pdf",
-        "photo.jpg",
-        "scan.dcm",
-        "IMG_1234.heic",
-        "report.docx",
-        "note.txt",
-        "archive.zip",
-    ]
-    
-    for test_file in test_files:
-        if Path(test_file).exists():
-            try:
-                print(f"\n--- Загрузка {test_file} ---")
-                file_type, content = load_medical_document(test_file)
-                print(f"Тип: {file_type}")
-                print(f"Содержимое: {type(content)}")
-                
-                # Для текста показываем первые 100 символов
-                if file_type in ['text', 'document', 'pdf'] and isinstance(content, str):
-                    print(f"Превью: {content[:100]}...")
-                    
-            except Exception as e:
-                print(f"Ошибка: {e}")
-        else:
-            print(f"\nФайл {test_file} не найден, пропускаем...")
-'''

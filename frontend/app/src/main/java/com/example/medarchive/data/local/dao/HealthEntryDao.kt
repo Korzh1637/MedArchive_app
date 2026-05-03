@@ -20,4 +20,7 @@ interface HealthEntryDao {
 
     @Query("SELECT * FROM health_entries WHERE userId = :userId AND deletedAt IS NULL ORDER BY entryDate DESC")
     fun getAllEntriesFlow(userId: Int): Flow<List<HealthEntryEntity>>
+
+    @Query("SELECT * FROM health_entries WHERE userId = :userId AND deletedAt IS NULL")
+    suspend fun getAllEntries(userId: Int): List<HealthEntryEntity>
 }

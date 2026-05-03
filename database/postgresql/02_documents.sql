@@ -5,7 +5,7 @@
 -- Поддерживает офлайн-синхронизацию через поля local_id и is_synced.
 -- =====================================================
 
-CREATE TABLE documents (
+CREATE TABLE IF NOT EXISTS documents (
     id SERIAL PRIMARY KEY,
     local_id VARCHAR(100) NOT NULL UNIQUE,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -59,7 +59,14 @@ dependencies {
     implementation(libs.core.ktx)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.compose.runtime)
-
+    implementation(libs.androidx.security.crypto)
+    implementation(libs.vico.compose)
+    implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("com.patrykandpatrick.vico:compose:2.2.0")
+    implementation(libs.androidx.compose.remote.creation.core)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.ui.text)
+    implementation(libs.androidx.compose.runtime.saveable)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Navigation

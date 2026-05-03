@@ -12,8 +12,7 @@ fun MainScreen(
     navController: NavController,
     mainViewModel: MainViewModel
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
-    var chosenElement by remember { mutableStateOf(0) } // для HomeScreen
+    var selectedTab by remember { mutableStateOf(1) }
 
     MainScaffold(
         navController = navController,
@@ -22,12 +21,11 @@ fun MainScreen(
         onTabSelected = { selectedTab = it }
     ) {
         when (selectedTab) {
-            0 -> HomeScreenContent(
-                mainViewModel = mainViewModel,
-                chosenElement = chosenElement,
-                onChosenElementChange = { chosenElement = it }
-            )
-            1 -> JournalScreenContent(mainViewModel = mainViewModel)
+            0 -> JournalScreenContent(
+                navController = navController,
+                mainViewModel = mainViewModel)
+            1 -> HomeScreenContent(
+            mainViewModel = mainViewModel)
             2 -> ProfileScreenContent(
                 navController = navController,
                 mainViewModel = mainViewModel

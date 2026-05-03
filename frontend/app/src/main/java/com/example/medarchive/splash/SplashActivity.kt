@@ -1,5 +1,12 @@
 package com.example.medarchive.splash
 
+import androidx.compose.animation.animateColor
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -13,12 +20,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,34 +47,130 @@ import androidx.navigation.NavController
 import com.example.medarchive.navigation.Screen
 import com.example.medarchive.ui.theme.PoppinsFontFamily
 import com.example.medarchive.ui.theme.MainColor
-import com.example.medarchive.ui.theme.DarkModeBar
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import com.example.medarchive.R
+import com.example.medarchive.registration.BackgroundCircles
+import com.example.medarchive.ui.theme.DarkModeBar
 import com.example.medarchive.ui.theme.LettersAndIcons
 import com.example.medarchive.ui.theme.RegMenu
+import com.example.medarchive.utils.SessionManager
+import kotlinx.coroutines.delay
 
 @Composable
-fun SplashActivity(navController: NavController) {
+fun OnBoardingScreen(navController: NavController) {
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+    var showOnboarding by remember { mutableStateOf<Boolean?>(null) }
+
+    LaunchedEffect(Unit) {
+        delay(2500)
+        val loggedIn = sessionManager.isLoggedIn()
+        if (loggedIn) {
+            navController.navigate(Screen.Main.route) {
+                popUpTo(Screen.OnBoarding.route) { inclusive = true }
+            }
+        } else {
+            showOnboarding = true
+        }
+    }
+
+    // Пока проверка не завершена, показываем просто логотип
+    if (showOnboarding == null) {
+        val infiniteTransition1 = rememberInfiniteTransition(label = "pulse")
+        val scale by infiniteTransition1.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.05f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(3000, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "logoScale"
+        )
+
+        val infiniteTransition2 = rememberInfiniteTransition(label = "tint")
+        val tintColor by infiniteTransition2.animateColor(
+            initialValue = DarkModeBar,
+            targetValue = LettersAndIcons,
+            animationSpec = infiniteRepeatable(
+                animation = tween(3000, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "tintColor"
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MainColor,
+                            RegMenu
+                        )
+                    )
+                )
+        ) {
+            BackgroundCircles()
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Box(modifier = Modifier.scale(scale))
+                {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_logo_dark),
+                        contentDescription = "Logo",
+                        modifier = Modifier
+                            .size(250.dp)
+                            .padding(16.dp),
+                        tint = tintColor
+                    )
+                }
+
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Заголовок с градиентом
+                Text(
+                    text = "MedArchive",
+                    fontFamily = PoppinsFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 56.sp,
+                    style = MaterialTheme.typography.displayMedium.copy(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(DarkModeBar, LettersAndIcons)
+                        )
+                    ),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        return
+    }
+
+    // Основной онбординг
     var currentStep by remember { mutableStateOf(0) }
     val steps = 3
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Фоновое изображение в зависимости от этапа
         when (currentStep) {
             0 -> SplashScreenBackground(R.drawable.first)
             1 -> SplashScreenBackground(R.drawable.second)
             2 -> SplashScreenBackground(R.drawable.third)
         }
 
-        // Контент поверх фона
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
             Spacer(Modifier.height(35.dp))
-            // Индикатор прогресса
             GradientProgressBar((currentStep + 1).toFloat() / steps)
 
             Spacer(Modifier.weight(1f))
@@ -72,9 +179,8 @@ fun SplashActivity(navController: NavController) {
                 step = currentStep,
                 onStepChange = { newStep ->
                     if (newStep == 3) {
-                        // Переход на следующий экран
                         navController.navigate(Screen.RegLogMain.route) {
-                            popUpTo(Screen.Splash.route) { inclusive = true }
+                            popUpTo(Screen.OnBoarding.route) { inclusive = true }
                             launchSingleTop = true
                         }
                     } else {

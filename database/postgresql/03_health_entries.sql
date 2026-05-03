@@ -4,7 +4,7 @@
 -- Хранит показатели: давление, сахар, боль и т.д.
 -- =====================================================
 
-CREATE TABLE health_entries (
+CREATE TABLE IF NOT EXISTS health_entries (
     id SERIAL PRIMARY KEY,
     local_id VARCHAR(100) NOT NULL UNIQUE,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

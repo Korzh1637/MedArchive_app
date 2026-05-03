@@ -33,7 +33,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.medarchive.DateVisualTransformation
 import com.example.medarchive.R
 import com.example.medarchive.navigation.Screen
 import com.example.medarchive.presentation.viewmodels.MainViewModel
@@ -82,12 +81,7 @@ fun RegistrationScreen(navController: NavController, mainViewModel: MainViewMode
                 )
             )
     ) {
-        // Декоративные размытые круги
-        AnimatedVisibility(
-            visibleState = transitionState,
-            enter = fadeIn(animationSpec = tween(1500, delayMillis = 500)) +
-                    slideInVertically(initialOffsetY = { -40 }, animationSpec = tween(600, delayMillis = 100))
-        ) { AnimatedBackgroundCircles() }
+        BackgroundCircles()
 
         Column(
             modifier = Modifier
@@ -95,7 +89,8 @@ fun RegistrationScreen(navController: NavController, mainViewModel: MainViewMode
                 .padding(horizontal = 24.dp)
                 .imePadding()
                 .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Spacer(modifier = Modifier.height(48.dp))
 
@@ -150,7 +145,7 @@ fun RegistrationScreen(navController: NavController, mainViewModel: MainViewMode
                         AnimatedTextField(
                             value = name,
                             onValueChange = { name = it },
-                            placeholder = "Полное имя",
+                            placeholder = "Имя",
                             leadingIcon = R.drawable.ic_person,
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Text,
@@ -171,25 +166,6 @@ fun RegistrationScreen(navController: NavController, mainViewModel: MainViewMode
                                 keyboardType = KeyboardType.Email,
                                 imeAction = ImeAction.Next
                             ),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Дата рождения (с кастомной трансформацией)
-                        AnimatedTextField(
-                            value = birthDay,
-                            onValueChange = {
-                                val filtered = it.filter { char -> char.isDigit() || char == '/' }
-                                if (filtered.length <= 10) birthDay = filtered
-                            },
-                            placeholder = "ДД/ММ/ГГГГ",
-                            leadingIcon = R.drawable.ic_person, // можно заменить на иконку календаря
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Number,
-                                imeAction = ImeAction.Next
-                            ),
-                            visualTransformation = DateVisualTransformation(),
                             modifier = Modifier.fillMaxWidth()
                         )
 

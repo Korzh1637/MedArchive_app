@@ -17,6 +17,8 @@ from backend.medarchive_extractor.src.medarchive_extractor.core import process_m
 # ---------- Конфигурация ----------
 load_dotenv()
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("JWT_SECRET_KEY is not set")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
@@ -71,7 +73,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 @app.post("/auth/register", response_model=dict)
 async def register(
     email: str = Form(...),
-    password_hash: str = Form(...),
+    password: str = Form(...),
     full_name: str = Form(...),
     created_at: datetime = Form(...),
     updated_at: datetime = Form(...),
@@ -79,9 +81,10 @@ async def register(
     is_active: bool = Form(True)
 ):
     """Регистрация пользователя (вызывает sync_user)"""
+    hashed_password = hash_password(password)
     user_id = db.sync_user(
         email=email,
-        password_hash=password_hash,
+        password_hash=hashed_password,
         full_name=full_name,
         created_at=created_at,
         updated_at=updated_at,
@@ -181,7 +184,7 @@ async def sync_document_endpoint(
     """
     if user_id != current_user_id:
         raise HTTPException(status_code=403, detail="Forbidden")
-    
+
     raw = await image.read()
     encrypted_image = cipher.encrypt(raw)
 
@@ -196,6 +199,7 @@ async def sync_document_endpoint(
         updated_at=updated_at,
         deleted_at=deleted_at
     )
+
     if not doc_id:
         raise HTTPException(status_code=500, detail="Document sync failed")
     
@@ -217,7 +221,7 @@ async def sync_health_entry_endpoint(
     notes: str = Form(...),
     entry_date: datetime = Form(...),
     created_at: datetime = Form(...),
-    updated_at: datetime = Form(...),
+    updated_at: datetime = Form(...),   
     deleted_at: Optional[datetime] = Form(None),
     current_user_id: int = Depends(get_current_user)
 ):
