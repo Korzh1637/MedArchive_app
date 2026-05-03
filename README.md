@@ -1,7 +1,3 @@
-Вот README с упором именно на **быструю установку и запуск для пользователя** 👇
-
----
-
 # 📚 MedArchive
 
 **MedArchive** — мобильное приложение для хранения медицинских данных и отслеживания показателей здоровья в динамике.
@@ -116,17 +112,32 @@ MedArchive.apk
 http://<ТВОЙ_IP>:8000
 ```
 
-Подробный гайд:
-<img src="assets/image1.png" width="300"/>
-<img src="assets/image2.png" width="300"/>
-<img src="assets/image3.png" width="300"/>
-<img src="assets/image4.png" width="300"/>
-<img src="assets/image5.png" width="300"/>
-<img src="assets/image6.png" width="300"/>
-<img src="assets/image7.png" width="300"/>
-<img src="assets/image8.png" width="300"/>
-<img src="assets/image9.png" width="300"/>
-<img src="assets/image10.png" width="300"/>
+## 📸 Пошаговая инструкция
+
+<p align="center">
+  <img src="assets/image1.png" width="45%"/>
+  <img src="assets/image2.png" width="45%"/>
+</p>
+
+<p align="center">
+  <img src="assets/image3.png" width="45%"/>
+  <img src="assets/image4.png" width="45%"/>
+</p>
+
+<p align="center">
+  <img src="assets/image5.png" width="45%"/>
+  <img src="assets/image6.png" width="45%"/>
+</p>
+
+<p align="center">
+  <img src="assets/image7.png" width="45%"/>
+  <img src="assets/image8.png" width="45%"/>
+</p>
+
+<p align="center">
+  <img src="assets/image9.png" width="45%"/>
+  <img src="assets/image10.png" width="45%"/>
+</p>
 ---
 
 # 📊 Основные возможности
