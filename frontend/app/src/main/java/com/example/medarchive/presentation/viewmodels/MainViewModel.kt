@@ -6,7 +6,14 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import at.favre.lib.crypto.bcrypt.BCrypt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import org.json.JSONObject
+import java.io.File
 import com.example.medarchive.R
 import com.example.medarchive.data.local.DatabaseRepository
 import com.example.medarchive.domain.models.Document
@@ -26,6 +33,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Date
+import java.util.UUID
 
 class MainViewModel(
     application: Application,
@@ -33,7 +41,7 @@ class MainViewModel(
 ) : AndroidViewModel(application) {
 
     private val sessionManager = SessionManager(application)
-
+    private val entryFlowsCache = mutableMapOf<String, StateFlow<List<HealthEntry>>>()
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
@@ -67,15 +75,26 @@ class MainViewModel(
 
     private val defaultCategories = listOf(
         HealthCategory("1", "Давление", "мм рт.ст.", R.drawable.ic_doctor, Color(0xFFE1BEE7)),
-        HealthCategory("2", "Сахар крови", "ммоль/л", R.drawable.ic_journal, Color(0xFFC8E6C9)),
+        HealthCategory("2", "Сахар крови", "ммоль/л", R.drawable.ic_doctor, Color(0xFFC8E6C9)),
         HealthCategory("3", "Пульс", "уд/мин", R.drawable.ic_doctor, Color(0xFFBBDEFB)),
-        HealthCategory("4", "Вес", "кг", R.drawable.ic_add, Color(0xFFFFF9C4))
+        HealthCategory("4", "Вес", "кг", R.drawable.ic_doctor, Color(0xFFFFF9C4))
     )
 
     init {
-        // При создании ViewModel пытаемся восстановить сессию
         restoreSession()
     }
+
+    // ================= SERVER =================
+
+    private val client = OkHttpClient()
+    fun getBaseUrl(): String = sessionManager.getBaseUrl()
+    fun updateBaseUrl(url: String) = sessionManager.saveBaseUrl(url)
+
+    data class ParsedDocument(
+        val title: String,
+        val documentType: String,
+        val content: String
+    )
 
     // ========== Пользователи ==========
     fun login(email: String, password: String) {
@@ -122,6 +141,7 @@ class MainViewModel(
         _documents.value = emptyList()
         _healthEntries.value = emptyList()
         _healthCategories.value = emptyList()
+        entryFlowsCache.clear()
         _loginError.value = null
         _registrationError.value = null
     }
@@ -170,6 +190,40 @@ class MainViewModel(
             loadDocuments(userId)
         }
     }
+
+    suspend fun parseDocumentFromServer(imagePath: String): ParsedDocument? =
+        withContext(Dispatchers.IO) {
+            try {
+                val file = File(imagePath)
+
+                val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+
+                val body = MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart("image", file.name, requestFile)
+                    .build()
+
+                val request = Request.Builder()
+                    .url("${getBaseUrl()}/recogn_doc")
+                    .post(body)
+                    .build()
+
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) return@withContext null
+
+                    val json = JSONObject(response.body?.string() ?: return@withContext null)
+
+                    ParsedDocument(
+                        title = json.getString("title"),
+                        documentType = json.getString("document_type"),
+                        content = json.getString("content")
+                    )
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
+        }
 
     // ========== Восстановление пароля ==========
     fun requestPasswordReset(email: String) {
@@ -233,6 +287,24 @@ class MainViewModel(
         }
     }
 
+    fun addCategory(name: String, unit: String) {
+        // Простейшая проверка на дублирование имени (опционально)
+        if (_healthCategories.value.any { it.name.equals(name, ignoreCase = true) }) {
+            Log.w("VM", "Категория с именем '$name' уже существует")
+            return
+        }
+
+        val newCategory = HealthCategory(
+            id = UUID.randomUUID().toString(),   // уникальный ID
+            name = name.trim(),
+            unit = unit.trim(),
+            iconRes = R.drawable.ic_doctor,      // иконка по умолчанию
+            color = Color(0xFFBBDEFB),           // голубой цвет по умолчанию
+            lastValue = null
+        )
+
+        _healthCategories.value = _healthCategories.value + newCategory
+    }
 //    fun getCategory(categoryId: String): StateFlow<HealthCategory?> {
 //        return _healthCategories
 //            .map { list -> list.find { it.id == categoryId } }
@@ -243,19 +315,22 @@ class MainViewModel(
 //            )
 //    }
 
-    fun getEntriesForCategory(categoryId: String): StateFlow<List<HealthEntry>> {
-        val userId = _currentUser.value?.id
-        if (userId == null) return MutableStateFlow(emptyList())
-        val categoryName = _healthCategories.value.find { it.id == categoryId }?.name ?: ""  // ← .value
-        return repository.getAllEntriesFlow(userId)
-            .map { entries -> entries.filter { it.entryType == categoryName } }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
-            )
+    fun getEntriesForCategory(categoryName: String): StateFlow<List<HealthEntry>> {
+        return entryFlowsCache.getOrPut(categoryName) {
+            val userId = _currentUser.value?.id
+            if (userId == null) {
+                MutableStateFlow(emptyList())
+            } else {
+                repository.getAllEntriesFlow(userId)
+                    .map { entries -> entries.filter { it.entryType == categoryName } }
+                    .stateIn(
+                        scope = viewModelScope,
+                        started = SharingStarted.WhileSubscribed(5000),
+                        initialValue = emptyList()
+                    )
+            }
+        }
     }
-
     // ========== Health Entries ==========
     fun createHealthEntry(
         entryType: String,
@@ -281,6 +356,13 @@ class MainViewModel(
         }
     }
 
+    fun deleteHealthEntry(localId: String) {
+        val userId = _currentUser.value?.id ?: return
+        viewModelScope.launch {
+            repository.deleteEntry(userId, localId)
+            loadHealthCategories()
+        }
+    }
     // ========== Вспомогательные ==========
     private fun loadUserData(userId: Int) {
         loadDocuments(userId)

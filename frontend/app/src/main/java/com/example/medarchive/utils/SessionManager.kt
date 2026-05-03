@@ -19,8 +19,10 @@ class SessionManager(context: Context) {
         private const val KEY_USER_ID = "user_id"
         private const val KEY_USER_EMAIL = "user_email"
         private const val KEY_IS_LOGGED_IN = "is_logged_in"
+        private const val KEY_AUTH_TOKEN = "auth_token"
     }
 
+    // ---------- Базовая сессия пользователя ----------
     fun saveUserSession(userId: Int, email: String) {
         prefs.edit()
             .putInt(KEY_USER_ID, userId)
@@ -34,6 +36,21 @@ class SessionManager(context: Context) {
     fun getUserId(): Int = prefs.getInt(KEY_USER_ID, -1)
     fun getUserEmail(): String? = prefs.getString(KEY_USER_EMAIL, null)
 
+    fun saveBaseUrl(url: String) {
+        prefs.edit().putString("base_url", url).apply()
+    }
+
+    fun getBaseUrl(): String {
+        return prefs.getString("base_url", "http://10.0.2.2:8000") ?: "http://10.0.2.2:8000"
+    }
+    // ---------- JWT токен ----------
+    fun saveAuthToken(token: String) {
+        prefs.edit().putString(KEY_AUTH_TOKEN, token).apply()
+    }
+
+    fun getAuthToken(): String? = prefs.getString(KEY_AUTH_TOKEN, null)
+
+    // ---------- Очистка сессии ----------
     fun clearSession() {
         prefs.edit().clear().apply()
     }

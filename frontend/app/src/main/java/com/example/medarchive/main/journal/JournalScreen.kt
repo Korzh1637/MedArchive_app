@@ -6,7 +6,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -34,6 +41,7 @@ fun JournalScreenContent(
 ) {
     val currentUser by mainViewModel.currentUser.collectAsState()
     val categories by mainViewModel.healthCategories.collectAsState()
+    var showAddCategoryDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentUser) {
         currentUser?.let {
@@ -41,23 +49,33 @@ fun JournalScreenContent(
         }
     }
 
+    // Кнопка «+» в TopBar теперь будет открывать диалог
+    val onAddClick = { showAddCategoryDialog = true }
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp)
     ) {
-        Spacer(modifier = Modifier.height(90.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+        TopBar(onAddClick = onAddClick)
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         if (categories.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_journal),
                         contentDescription = null,
-                        tint = DarkModeBar.copy(alpha = 0.3f),
+                        tint = LettersAndIcons.copy(alpha = 0.5f),
                         modifier = Modifier.size(64.dp)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
@@ -66,14 +84,14 @@ fun JournalScreenContent(
                         fontFamily = PoppinsFontFamily,
                         fontWeight = FontWeight.Medium,
                         fontSize = 16.sp,
-                        color = DarkModeBar.copy(alpha = 0.6f)
+                        color = LettersAndIcons.copy(alpha = 0.6f)
                     )
                     Button(
-                        onClick = { /* TODO: создание категории */ },
+                        onClick = onAddClick,
                         modifier = Modifier.padding(top = 16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MainColor)
                     ) {
-                        Text("Добавить показатель", color = DarkModeBar)
+                        Text("Добавить показатель", color = LettersAndIcons)
                     }
                 }
             }
@@ -82,18 +100,122 @@ fun JournalScreenContent(
                 columns = GridCells.Fixed(2),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f)
             ) {
                 items(categories, key = { it.id }) { category ->
                     CategoryTile(
                         category = category,
                         onClick = {
-                            navController.navigate(Screen.HealthCategoryDetail.createRoute(category.id))
+                            navController.navigate(
+                                Screen.HealthCategoryDetail.createRoute(category.id)
+                            )
                         }
                     )
                 }
             }
         }
+    }
+
+    // Диалог добавления новой категории
+    if (showAddCategoryDialog) {
+        AddCategoryDialog(
+            onDismiss = { showAddCategoryDialog = false },
+            onConfirm = { name, unit ->
+                mainViewModel.addCategory(name, unit)
+                showAddCategoryDialog = false
+            }
+        )
+    }
+}
+
+// Диалог создания категории
+@Composable
+private fun AddCategoryDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (name: String, unit: String) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var unit by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Новый показатель") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Название (например, Давление)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = unit,
+                    onValueChange = { unit = it },
+                    label = { Text("Единица измерения (мм рт.ст., кг)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii)
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (name.isNotBlank() && unit.isNotBlank()) {
+                        onConfirm(name.trim(), unit.trim())
+                    }
+                }
+            ) {
+                Text("Добавить")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Отмена") }
+        }
+    )
+}
+
+
+@Composable
+private fun TopBar(
+    onAddClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Spacer(modifier = Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Журнал здоровья",
+                fontWeight = FontWeight.Bold,
+                fontFamily = PoppinsFontFamily,
+                fontSize = 24.sp,
+                color = LettersAndIcons
+            )
+        }
+        AddButton(onClick = onAddClick)
+    }
+}
+
+@Composable
+private fun AddButton(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(LightSubMainColor)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Add,
+            contentDescription = "Добавить документ",
+            tint = LettersAndIcons,
+            modifier = Modifier.size(28.dp)
+        )
     }
 }
 
@@ -130,7 +252,7 @@ fun CategoryTile(
                 Icon(
                     painter = painterResource(id = category.iconRes),
                     contentDescription = null,
-                    tint = DarkModeBar,
+                    tint = LettersAndIcons,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -140,29 +262,29 @@ fun CategoryTile(
                 fontFamily = PoppinsFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 18.sp,
-                color = DarkModeBar
+                color = LettersAndIcons
             )
             Text(
                 text = category.unit,
                 fontFamily = PoppinsFontFamily,
                 fontSize = 14.sp,
-                color = DarkModeBar.copy(alpha = 0.7f)
+                color = LettersAndIcons.copy(alpha = 0.7f)
             )
             Spacer(modifier = Modifier.height(4.dp))
             if (category.lastValue != null) {
                 Text(
-                    text = "${category.lastValue} ${category.unit}",
+                    text = "${category.lastValue}",
                     fontFamily = PoppinsFontFamily,
                     fontWeight = FontWeight.Bold,
                     fontSize = 22.sp,
-                    color = MainColor
+                    color = LettersAndIcons
                 )
             } else {
                 Text(
                     text = "Нет данных",
                     fontFamily = PoppinsFontFamily,
                     fontSize = 14.sp,
-                    color = DarkModeBar.copy(alpha = 0.5f)
+                    color = LettersAndIcons.copy(alpha = 0.5f)
                 )
             }
         }

@@ -98,7 +98,7 @@ class DatabaseRepository(context: Context) {
         userId: Int,
         imagePath: String?,
         title: String? = null,
-        documentType: String? = null,
+        type: String? = null,
         text: String? = null
     ): Document? {
         return withContext(Dispatchers.IO) {
@@ -108,7 +108,7 @@ class DatabaseRepository(context: Context) {
                 localId = localId,
                 userId = userId,
                 title = title,
-                documentType = documentType,
+                documentType = type,
                 content = text,
                 imagePath = imagePath,
                 addImagePath = imagePath != null,
@@ -274,6 +274,7 @@ private fun UserEntity.toDomainModel(): User {
     return User(
         id = id,
         email = email,
+        passwordHash = passwordHash,
         fullName = fullName,
         createdAt = createdAt,
         updatedAt = updatedAt,

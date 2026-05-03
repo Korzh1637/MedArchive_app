@@ -12,7 +12,18 @@ fun MainScreen(
     navController: NavController,
     mainViewModel: MainViewModel
 ) {
-    var selectedTab by remember { mutableStateOf(1) }
+    // Читаем сохранённый номер вкладки, если он есть, иначе 1
+    var selectedTab by remember {
+        val saved = navController.currentBackStackEntry
+            ?.savedStateHandle
+            ?.get<Int>("selectedTab")
+        mutableIntStateOf(saved ?: 1)
+    }
+
+    // Сбрасываем флаг, чтобы следующий возврат не приводил к переключению
+    LaunchedEffect(Unit) {
+        navController.currentBackStackEntry?.savedStateHandle?.remove<Int>("selectedTab")
+    }
 
     MainScaffold(
         navController = navController,
@@ -21,15 +32,9 @@ fun MainScreen(
         onTabSelected = { selectedTab = it }
     ) {
         when (selectedTab) {
-            0 -> JournalScreenContent(
-                navController = navController,
-                mainViewModel = mainViewModel)
-            1 -> HomeScreenContent(
-            mainViewModel = mainViewModel)
-            2 -> ProfileScreenContent(
-                navController = navController,
-                mainViewModel = mainViewModel
-            )
+            0 -> JournalScreenContent(navController = navController, mainViewModel = mainViewModel)
+            1 -> HomeScreenContent(mainViewModel = mainViewModel)
+            2 -> ProfileScreenContent(navController = navController, mainViewModel = mainViewModel)
         }
     }
 }

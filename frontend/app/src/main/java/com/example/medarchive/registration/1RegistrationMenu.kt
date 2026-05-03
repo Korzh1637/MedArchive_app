@@ -122,7 +122,7 @@ fun RegLogMainScreen(navController: NavController) {
                     text = "MedArchive",
                     fontFamily = PoppinsFontFamily,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 56.sp,
+                    fontSize = 42.sp,
                     style = MaterialTheme.typography.displayMedium.copy(
                         brush = Brush.horizontalGradient(
                             colors = listOf(DarkModeBar, LettersAndIcons)

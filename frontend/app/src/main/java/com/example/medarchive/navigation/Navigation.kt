@@ -8,6 +8,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.medarchive.main.MainScreen
 import com.example.medarchive.main.journal.CategoryDetailScreen
+import com.example.medarchive.main.journal.JournalScreenContent
 import com.example.medarchive.presentation.viewmodels.MainViewModel
 import com.example.medarchive.registration.ConfirmScreen
 import com.example.medarchive.registration.LoginScreen
@@ -66,7 +67,11 @@ fun AppNavigation(mainViewModel: MainViewModel) {
             CategoryDetailScreen(
                 categoryId = categoryId,
                 navController = navController,
-                mainViewModel = mainViewModel
+                mainViewModel = mainViewModel,
+                onNavigateBack = {
+                    navController.previousBackStackEntry?.savedStateHandle?.set("selectedTab", 0)
+                    navController.popBackStack()
+                }
             )
         }
     }

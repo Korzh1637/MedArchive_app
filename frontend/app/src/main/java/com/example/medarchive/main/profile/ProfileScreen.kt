@@ -1,5 +1,8 @@
 package com.example.medarchive.main.profile
 
+import android.content.ClipData
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -7,15 +10,21 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import android.content.ClipboardManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -34,9 +43,15 @@ fun ProfileScreenContent(
     val documents by mainViewModel.documents.collectAsState()
     val healthEntries by mainViewModel.healthEntries.collectAsState()
 
+    val othersCount = documents.count { it.documentType !in listOf("analysis", "анализ", "doctor", "врач", "image", "снимок") }
     val analyticsCount = documents.count { it.documentType in listOf("analysis", "анализ") }
     val doctorsCount = documents.count { it.documentType in listOf("doctor", "врач") }
     val imagesCount = documents.count { it.documentType in listOf("image", "снимок") }
+
+    var showHelpDialog by remember { mutableStateOf(false) }
+    var showServerDialog by remember { mutableStateOf(false) }
+    var serverUrl by remember { mutableStateOf("") }
+    val currentServerUrl = remember { mainViewModel.getBaseUrl() }
 
     Column(
         modifier = modifier
@@ -47,7 +62,8 @@ fun ProfileScreenContent(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(16.dp))
-        // ====== ВЕРХНЯЯ ПАНЕЛЬ ======
+
+        // Заголовок
         Text(
             text = "Профиль",
             fontFamily = PoppinsFontFamily,
@@ -56,7 +72,7 @@ fun ProfileScreenContent(
             color = LettersAndIcons,
         )
 
-        // ====== АВАТАР + ИНФО ПОЛЬЗОВАТЕЛЯ ======
+        // Аватар и информация пользователя
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(vertical = 16.dp)
@@ -75,9 +91,7 @@ fun ProfileScreenContent(
                     alpha = 0.8f
                 )
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
             Text(
                 text = currentUser?.fullName ?: "Гость",
                 fontFamily = PoppinsFontFamily,
@@ -85,7 +99,6 @@ fun ProfileScreenContent(
                 fontSize = 22.sp,
                 color = LettersAndIcons
             )
-
             Text(
                 text = currentUser?.email ?: "не авторизован",
                 fontFamily = PoppinsFontFamily,
@@ -98,7 +111,7 @@ fun ProfileScreenContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ====== МЕНЮ ПРОФИЛЯ ======
+        // Меню профиля
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(32.dp),
@@ -109,89 +122,44 @@ fun ProfileScreenContent(
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
             ) {
-                ProfileMenuItem(
-                    icon = R.drawable.ic_person,
-                    label = "Личные данные",
-                    onClick = { /* Навигация или действие */ }
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = LettersAndIcons.copy(alpha = 0.2f)
-                )
-                ProfileMenuItem(
-                    icon = R.drawable.ic_lock,
-                    label = "Безопасность",
-                    onClick = { /* Навигация или действие */ }
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = LettersAndIcons.copy(alpha = 0.2f)
-                )
-                ProfileMenuItem(
-                    icon = R.drawable.bell,
-                    label = "Уведомления",
-                    onClick = { /* Навигация или действие */ }
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = LettersAndIcons.copy(alpha = 0.2f)
-                )
-                ProfileMenuItem(
-                    icon = R.drawable.ic_help,
-                    label = "Помощь и поддержка",
-                    onClick = { /* Навигация или действие */ }
-                )
+//                ProfileMenuItem(R.drawable.ic_person, "Личные данные") { /* ... */ }
+//                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = LettersAndIcons.copy(alpha = 0.2f))
+//                ProfileMenuItem(R.drawable.ic_lock, "Безопасность") { /* ... */ }
+//                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = LettersAndIcons.copy(alpha = 0.2f))
+                ProfileMenuItem(R.drawable.ic_help, "Помощь и поддержка") {
+                    showHelpDialog = true
+                }
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = LettersAndIcons.copy(alpha = 0.2f))
+                ProfileMenuItem(icon = R.drawable.ic_server, label = "Настройки сервера") {
+                    serverUrl = currentServerUrl
+                    showServerDialog = true
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ====== СТАТИСТИКА ======
+        // Статистика
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(32.dp),
             color = RegMenu.copy(alpha = 0.9f)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "Ваша статистика",
-                    fontFamily = PoppinsFontFamily,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    color = LettersAndIcons,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    StatItem(
-                        label = "Анализы",
-                        value = analyticsCount.toString(),
-                        icon = R.drawable.ic_journal
-                    )
-                    StatItem(
-                        label = "Врачи",
-                        value = doctorsCount.toString(),
-                        icon = R.drawable.ic_doctor
-                    )
-                    StatItem(
-                        label = "Снимки",
-                        value = imagesCount.toString(),
-                        icon = R.drawable.ic_add
-                    )
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Text("Ваша статистика", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = LettersAndIcons)
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    StatItem("Анализы", analyticsCount.toString(), R.drawable.ic_journal)
+                    StatItem("Врачи", doctorsCount.toString(), R.drawable.ic_doctor)
+                    StatItem("Снимки", imagesCount.toString(), R.drawable.photo)
+                    StatItem("Прочее", othersCount.toString(), R.drawable.info)
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // ====== КНОПКА ВЫХОДА ======
+        // Кнопка выхода
         Button(
             onClick = {
                 mainViewModel.logout()
@@ -199,30 +167,89 @@ fun ProfileScreenContent(
                     popUpTo(0) { inclusive = true }
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth(0.6f)
-                .height(52.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFE57373), // Мягкий красный для выхода
-                contentColor = LettersAndIcons
-            ),
+            modifier = Modifier.fillMaxWidth(0.6f).height(52.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE57373), contentColor = LettersAndIcons),
             shape = RoundedCornerShape(26.dp),
             elevation = ButtonDefaults.buttonElevation(0.dp)
         ) {
-            Text(
-                text = "Выйти",
-                fontFamily = PoppinsFontFamily,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 16.sp,
-                color = LettersAndIcons
-            )
+            Text("Выйти", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = LettersAndIcons)
         }
 
         Spacer(modifier = Modifier.height(40.dp))
     }
+
+    // Диалог ввода адреса сервера
+    if (showServerDialog) {
+        AlertDialog(
+            onDismissRequest = { showServerDialog = false },
+            title = { Text("Адрес сервера") },
+            text = {
+                Column {
+                    Text("Введите URL вашего сервера", fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = serverUrl,
+                        onValueChange = { serverUrl = it },
+                        label = { Text("http://...") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (serverUrl.isNotBlank()) {
+                        mainViewModel.updateBaseUrl(serverUrl)
+                        showServerDialog = false
+                    }
+                }) { Text("Сохранить") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showServerDialog = false }) { Text("Отмена") }
+            }
+        )
+    }
+
+    if (showHelpDialog) {
+        val context = LocalContext.current
+        AlertDialog(
+            onDismissRequest = { showHelpDialog = false },
+            title = { Text("Помощь и поддержка") },
+            text = {
+                Column {
+                    Text("По всем возникшим вопросам пишите сюда в Telegram:", fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        "@meowmeowmurrrr",
+                        fontSize = 20.sp,
+                        fontFamily = PoppinsFontFamily,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    // Копируем текст в буфер обмена
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("telegram_contact", "@meowmeowmurrrr")
+                    clipboard.setPrimaryClip(clip)
+                    Toast.makeText(context, "Скопировано", Toast.LENGTH_SHORT).show()
+                    showHelpDialog = false
+                }) {
+                    Text("Скопировать")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showHelpDialog = false }) {
+                    Text("Отмена")
+                }
+            }
+        )
+    }
 }
 
-// ====== ВСПОМОГАТЕЛЬНЫЙ КОМПОНЕНТ: ПУНКТ МЕНЮ ======
+// ====== Общие пункты меню ======
 @Composable
 private fun ProfileMenuItem(
     icon: Int,
@@ -253,7 +280,7 @@ private fun ProfileMenuItem(
         )
         Spacer(modifier = Modifier.weight(1f))
         Icon(
-            painter = painterResource(id = R.drawable.arrow_right),
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = "Navigate",
             tint = LettersAndIcons.copy(alpha = 0.6f),
             modifier = Modifier.size(20.dp)
@@ -261,7 +288,7 @@ private fun ProfileMenuItem(
     }
 }
 
-// ====== ВСПОМОГАТЕЛЬНЫЙ КОМПОНЕНТ: ЭЛЕМЕНТ СТАТИСТИКИ ======
+// ====== Элемент статистики ======
 @Composable
 private fun StatItem(
     label: String,
