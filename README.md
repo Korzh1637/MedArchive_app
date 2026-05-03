@@ -138,6 +138,7 @@ http://<ТВОЙ_IP>:8000
   <img src="assets/image9.png" width="45%"/>
   <img src="assets/image10.png" width="45%"/>
 </p>
+
 ---
 
 # 📊 Основные возможности
