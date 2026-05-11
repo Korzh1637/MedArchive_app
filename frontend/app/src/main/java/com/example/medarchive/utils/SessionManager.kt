@@ -41,7 +41,7 @@ class SessionManager(context: Context) {
     }
 
     fun getBaseUrl(): String {
-        return prefs.getString("base_url", "http://10.0.2.2:8000") ?: "http://10.0.2.2:8000"
+        return prefs.getString("base_url", "https://willpower-unknown-unmolded.ngrok-free.dev") ?: "https://willpower-unknown-unmolded.ngrok-free.dev"
     }
     // ---------- JWT токен ----------
     fun saveAuthToken(token: String) {

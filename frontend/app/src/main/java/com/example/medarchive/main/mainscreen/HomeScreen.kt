@@ -205,8 +205,8 @@ fun HomeScreenContent(
     if (showMetadataDialog && pendingImagePath != null && !isParsing) {
         val isTypeLocked = parsedDoc != null
         AddDocumentMetadataDialog(
-            initialTitle = parsedDoc?.title,
-            initialType = mapServerTypeToLocal(parsedDoc?.documentType),
+            initialTitle = "Ваше название",
+            initialType = mapServerTypeToLocal(parsedDoc?.title),
             initialNotes = parsedDoc?.content,
             isTypeLocked = isTypeLocked,
             onDismiss = {
